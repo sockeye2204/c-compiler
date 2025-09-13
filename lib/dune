@@ -1,0 +1,5 @@
+(library
+ (name c_compiler)
+ (public_name c_compiler)
+ (libraries re)
+ (modules extras lexer token))
