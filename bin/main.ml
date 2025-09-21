@@ -34,6 +34,15 @@ let codegen_file filename =
     lexer content |> parser |> asmgen |> ignore
   )
 
+let generate_asm filename =
+  run_stage filename (fun content ->
+    let asm_ast = lexer content |> parser |> asmgen in
+    let base = Filename.chop_extension filename in
+    let asm_file = base ^ ".s" in
+    emit asm_file asm_ast;
+    Printf.printf "Generated assembly file: %s\n" asm_file
+  )
+
 let compile_to_executable filename =
   run_stage filename (fun content ->
     let asm_ast = lexer content |> parser |> asmgen in
@@ -51,11 +60,13 @@ let () =
   | [_; "--lex"; filename]     -> lex_file filename
   | [_; "--parse"; filename]   -> parse_file filename
   | [_; "--codegen"; filename] -> codegen_file filename
+  | [_; "--asm"; filename]     -> generate_asm filename
   | [_; filename]              -> compile_to_executable filename
   | _ ->
-    print_endline "Usage: main [--lex|--parse|--codegen] <filename>";
+    print_endline "Usage: main [--lex|--parse|--codegen|--asm] <filename>";
     print_endline "  --lex:     Lex only";
     print_endline "  --parse:   Lex + parse";
     print_endline "  --codegen: Lex + parse + codegen";
+    print_endline "  --asm:     Generate assembly file (.s)";
     print_endline "  (default): Full compilation to executable";
     exit 1
