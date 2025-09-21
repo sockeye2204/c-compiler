@@ -1,0 +1,1 @@
+val emit : string -> Asm.t -> unit
