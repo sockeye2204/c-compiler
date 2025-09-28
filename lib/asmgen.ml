@@ -1,4 +1,6 @@
-let convert_exp (Ast.Constant i) = Asm.Imm i
+let rec convert_exp = function
+  | (Ast.Constant i) -> Asm.Imm i
+  | Ast.Unary {unary_operator = _; expression} -> convert_exp expression
 
 let convert_statement (Ast.Return exp) =
   let v = convert_exp exp in
