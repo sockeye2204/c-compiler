@@ -35,6 +35,9 @@ let token_defs =
     def {_|\{|_} (literal Token.BraceOpen);
     def {_|\}|_} (literal Token.BraceClose);
     def ";" (literal Token.Semicolon);
+    def "--" (literal Token.Decrement);
+    def "-" (literal Token.Negation);
+    def "~" (literal Token.BWComplement);
   ]
 
 let find_match str token_def =

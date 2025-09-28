@@ -9,4 +9,7 @@ type t =
 | BraceOpen
 | BraceClose
 | Semicolon
+| Decrement
+| Negation
+| BWComplement
 [@@deriving show]
