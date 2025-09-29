@@ -1,4 +1,4 @@
-type unary_operator = Complement | Negate
+type unary_operator = Complement | Negate [@@deriving show]
 type expression = Constant of int
                 | Unary of {unary_operator: unary_operator; expression: expression} [@@deriving show]
 type statement = Return of expression [@@deriving show]

@@ -1,5 +1,6 @@
 open C_compiler.Lexer
 open C_compiler.Parser
+open C_compiler.Tacer
 open C_compiler.Asmgen
 open C_compiler.Asmemit
 
@@ -27,6 +28,11 @@ let lex_file filename =
 let parse_file filename =
   run_stage filename (fun content ->
     lexer content |> parser |> ignore
+  )
+
+let tac_file filename =
+  run_stage filename (fun content ->
+    lexer content |> parser |> tacer |> ignore
   )
 
 let codegen_file filename =
@@ -59,6 +65,7 @@ let () =
   match Array.to_list Sys.argv with
   | [_; "--lex"; filename]     -> lex_file filename
   | [_; "--parse"; filename]   -> parse_file filename
+  | [_; "--tacky"; filename]   -> tac_file filename
   | [_; "--codegen"; filename] -> codegen_file filename
   | [_; "--asm"; filename]     -> generate_asm filename
   | [_; filename]              -> compile_to_executable filename
@@ -66,6 +73,7 @@ let () =
     print_endline "Usage: main [--lex|--parse|--codegen|--asm] <filename>";
     print_endline "  --lex:     Lex only";
     print_endline "  --parse:   Lex + parse";
+    print_endline "  --tacky:   Lex + parse + tac";
     print_endline "  --codegen: Lex + parse + codegen";
     print_endline "  --asm:     Generate assembly file (.s)";
     print_endline "  (default): Full compilation to executable";
