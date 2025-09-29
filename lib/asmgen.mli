@@ -1,1 +1,1 @@
-val asmgen : Ast.t -> Asm.t
+val asmgen : Tac.t -> Asm.t

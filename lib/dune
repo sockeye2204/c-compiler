@@ -2,4 +2,4 @@
  (name c_compiler)
  (public_name c_compiler)
  (libraries re)
- (modules asm asmemit asmgen ast extras lexer parser token tempids tac tacer))
+ (modules asm asmemit asmgen ast extras fixup lexer parser token tempids tac tacer pseudo_replace))
