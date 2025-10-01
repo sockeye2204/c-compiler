@@ -12,4 +12,8 @@ type t =
 | Decrement
 | Negation
 | BWComplement
+| Addition
+| Multiplication
+| Division
+| Remainder
 [@@deriving show]

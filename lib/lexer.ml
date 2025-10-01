@@ -38,6 +38,10 @@ let token_defs =
     def "--" (literal Token.Decrement);
     def "-" (literal Token.Negation);
     def "~" (literal Token.BWComplement);
+    def {_|\+|_} (literal Token.Addition);
+    def {_|\*|_} (literal Token.Multiplication);
+    def {_|\/|_} (literal Token.Division);
+    def {_|\%|_} (literal Token.Remainder);
   ]
 
 let find_match str token_def =
