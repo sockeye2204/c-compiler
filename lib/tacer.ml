@@ -14,6 +14,7 @@ let rec convert_exp = function
     let newinstruction = Tac.Unary{unary_operator=tacop; src; dst} in
     let instructions = List.append instructions [newinstruction] in
       (instructions, dst)
+  | Ast.Binary _ -> failwith "Binary expressions not yet supported"
 
 
 let convert_statement stmt =
