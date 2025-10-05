@@ -6,6 +6,12 @@ let convert_unaryop = function
   | Tac.Negate -> Asm.Neg
   | Tac.Complement -> Asm.Not
 
+let convert_binaryop = function
+  | Tac.Add -> Asm.Add
+  | Tac.Subtract -> Asm.Sub
+  | Tac.Multiply -> Asm.Mult
+  | Tac.Divide | Tac.Modulo -> failwith "Cannot convert division or modulo operators"
+
 let convert_instruction = function
   | Tac.Return value ->
     let v = convert_value value in
@@ -15,7 +21,25 @@ let convert_instruction = function
     let asm_src = convert_value src in
     let asm_dst = convert_value dst in
     Asm.[Mov(asm_src, asm_dst); Unary{unary_operator=asm_unaryop; operand=asm_dst}]
-  | _ -> failwith "Todo"
+  | Tac.Binary {binary_operator=binaryop; src1; src2; dst} -> (
+    let asm_src1 = convert_value src1 in
+    let asm_src2 = convert_value src2 in
+    let asm_dst = convert_value dst in
+    match binaryop with
+    | Tac.Divide | Tac.Modulo ->
+      let result_reg = if binaryop = Divide then Asm.AX else DX in
+      [
+        Mov (asm_src1, Register(AX));
+        Cdq;
+        Idiv (asm_src2);
+        Mov (Register result_reg, asm_dst);
+      ]
+    | _ ->
+      let asm_binaryop = convert_binaryop binaryop in
+      [
+        Mov (asm_src1, asm_dst);
+        Binary {binary_operator = asm_binaryop; operand1=asm_src2; operand2=asm_dst};
+      ])
 
 
 let convert_function (Tac.Function {name; instructions}) =

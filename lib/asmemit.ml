@@ -6,6 +6,7 @@ let show_op = function
   | Imm i -> Printf.sprintf "$%d" i
   | Stack offset -> Printf.sprintf "%d(%%rbp)" offset
   | Pseudo _ -> failwith "Pseudo registers should have been replaced by this point"
+  | _ -> failwith "bleh"
 
 let emit_instruction out_channel = function
   | Mov (src, dst) ->
@@ -18,6 +19,7 @@ let emit_instruction out_channel = function
     Printf.fprintf out_channel "\tsubq $%d, %%rsp\n" bytes
   | Ret ->
     Printf.fprintf out_channel "\tmovq %%rbp, %%rsp\n\tpopq %%rbp\n\tret\n"
+  | _ -> failwith "bleh"
 
 let emit_function out_channel (Function {name; instructions }) =
   Printf.fprintf out_channel {|

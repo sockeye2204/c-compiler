@@ -28,7 +28,14 @@ let instruction_replace state = function
   | Asm.Unary {unary_operator; operand} ->
     let state1, new_operand = operand_replace state operand in
     (state1, Asm.Unary {unary_operator; operand = new_operand})
-  | Asm.Ret -> (state, Asm.Ret)
+  | Asm.Binary {binary_operator; operand1; operand2} ->
+    let state1, new_operand1 = operand_replace state operand1 in
+    let state2, new_operand2 = operand_replace state1 operand2 in
+    (state2, Asm.Binary {binary_operator; operand1 = new_operand1; operand2 = new_operand2})
+  | Asm.Idiv operand ->
+    let state1, new_operand = operand_replace state operand in
+    (state1, Idiv new_operand)
+  | (Asm.Ret | Asm.Cdq) as other -> (state, other)
   | Asm.AllocateStack _ -> failwith "AllocateStack unexpected in instruction_replace"
 
 let function_replace (Asm.Function {name; instructions}) =
