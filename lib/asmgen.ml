@@ -27,9 +27,9 @@ let convert_instruction = function
     let asm_dst = convert_value dst in
     match binaryop with
     | Tac.Divide | Tac.Modulo ->
-      let result_reg = if binaryop = Divide then Asm.AX else DX in
+      let result_reg = if binaryop = Divide then Asm.AX else Asm.DX in
       [
-        Mov (asm_src1, Register(AX));
+        Mov (asm_src1, Register(Asm.AX));
         Cdq;
         Idiv (asm_src2);
         Mov (Register result_reg, asm_dst);

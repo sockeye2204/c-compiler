@@ -2,11 +2,12 @@ open Asm
 
 let show_op = function
   | Register AX -> "%eax"
+  | Register DX -> "%edx"
   | Register R10 -> "%r10d"
+  | Register R11 -> "%r11d"
   | Imm i -> Printf.sprintf "$%d" i
   | Stack offset -> Printf.sprintf "%d(%%rbp)" offset
   | Pseudo _ -> failwith "Pseudo registers should have been replaced by this point"
-  | _ -> failwith "bleh"
 
 let emit_instruction out_channel = function
   | Mov (src, dst) ->
@@ -15,11 +16,20 @@ let emit_instruction out_channel = function
     Printf.fprintf out_channel "\tnegl %s\n" (show_op operand)
   | Unary {unary_operator = Not; operand} ->
     Printf.fprintf out_channel "\tnotl %s\n" (show_op operand)
+  | Binary {binary_operator = Add; operand1; operand2} ->
+    Printf.fprintf out_channel "\taddl %s, %s\n" (show_op operand1) (show_op operand2)
+  | Binary {binary_operator = Sub; operand1; operand2} ->
+    Printf.fprintf out_channel "\tsubl %s, %s\n" (show_op operand1) (show_op operand2)
+  | Binary {binary_operator = Mult; operand1; operand2} ->
+    Printf.fprintf out_channel "\timull %s, %s\n" (show_op operand1) (show_op operand2)
+  | Idiv operand ->
+    Printf.fprintf out_channel "\tidivl %s\n" (show_op operand)
+  | Cdq ->
+    Printf.fprintf out_channel "\tcdq\n"
   | AllocateStack bytes ->
     Printf.fprintf out_channel "\tsubq $%d, %%rsp\n" bytes
   | Ret ->
     Printf.fprintf out_channel "\tmovq %%rbp, %%rsp\n\tpopq %%rbp\n\tret\n"
-  | _ -> failwith "bleh"
 
 let emit_function out_channel (Function {name; instructions }) =
   Printf.fprintf out_channel {|
