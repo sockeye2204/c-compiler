@@ -40,8 +40,17 @@ let token_defs =
     def "~" (literal Token.BWComplement);
     def {_|\+|_} (literal Token.Addition);
     def {_|\*|_} (literal Token.Multiplication);
-    def {_|\/|_} (literal Token.Division);
-    def {_|\%|_} (literal Token.Remainder);
+    def {_|/|_} (literal Token.Division);
+    def {_|%|_} (literal Token.Remainder);
+    def "!"  (literal Token.LogicalNot);
+    def "&&" (literal Token.LogicalAnd);
+    def "\\|\\|" (literal Token.LogicalOr);
+    def "==" (literal Token.EqualTo);
+    def "!=" (literal Token.NotEqualTo);
+    def "<"  (literal Token.LessThan);
+    def ">"  (literal Token.GreaterThan);
+    def "<=" (literal Token.LessThanOrEqualTo);
+    def ">=" (literal Token.GreaterThanOrEqualTo);
   ]
 
 let find_match str token_def =
@@ -61,6 +70,15 @@ let leading_whitespace str =
     let _, match_end = Re.Group.offset mtch 0 in
     Some match_end
 
+let skip_preprocessor str =
+  let preproc = Re.Pcre.regexp ~flags:[`ANCHORED] {|#[^\n]*|} in
+  match Re.exec_opt preproc str with
+  | Some mtch ->
+      let _, match_end = Re.Group.offset mtch 0 in
+      Some match_end
+  | None -> None
+
+      
 let skip_comment str =
   let single_line_comment = Re.Pcre.regexp ~flags: [`ANCHORED] {|//.*|} in
   let block_comment = Re.Pcre.regexp ~flags: [`ANCHORED] {|/\*.*?\*/|} in
@@ -84,21 +102,24 @@ let rec lexer input =
       match skip_comment input with
       | Some comment_count -> lexer (StringUtil.drop comment_count input)
       | None ->
-        let matches = List.filter_map (find_match input) token_defs in
-        if matches = [] then raise (LexerError input)
-        else
-          let compare_match_lengths m1 m2 =
-            Int.compare
-            (String.length m1.matched_substr)
-            (String.length m2.matched_substr)
-          in
-          let longest_match = ListUtil.max compare_match_lengths matches in
-          let converter = longest_match.matching_token.converter in
-          let matching_substr = longest_match.matched_substr in
-          let next_tok = converter matching_substr in
-          let remaining =
-            StringUtil.drop
-            (String.length longest_match.matched_substr)
-            input
-          in
-          next_tok :: lexer remaining
+        match skip_preprocessor input with
+        | Some preproc_count -> lexer (StringUtil.drop preproc_count input)
+        | None ->
+          let matches = List.filter_map (find_match input) token_defs in
+          if matches = [] then raise (LexerError input)
+          else
+            let compare_match_lengths m1 m2 =
+              Int.compare
+              (String.length m1.matched_substr)
+              (String.length m2.matched_substr)
+            in
+            let longest_match = ListUtil.max compare_match_lengths matches in
+            let converter = longest_match.matching_token.converter in
+            let matching_substr = longest_match.matched_substr in
+            let next_tok = converter matching_substr in
+            let remaining =
+              StringUtil.drop
+              (String.length longest_match.matched_substr)
+              input
+            in
+            next_tok :: lexer remaining

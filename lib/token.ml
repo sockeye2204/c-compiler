@@ -16,4 +16,14 @@ type t =
 | Multiplication
 | Division
 | Remainder
+| LogicalNot
+| LogicalAnd
+| LogicalOr
+| EqualTo
+| NotEqualTo
+| LessThan
+| GreaterThan
+| LessThanOrEqualTo
+| GreaterThanOrEqualTo
+
 [@@deriving show]
