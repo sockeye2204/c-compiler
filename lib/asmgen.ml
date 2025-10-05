@@ -15,6 +15,7 @@ let convert_instruction = function
     let asm_src = convert_value src in
     let asm_dst = convert_value dst in
     Asm.[Mov(asm_src, asm_dst); Unary{unary_operator=asm_unaryop; operand=asm_dst}]
+  | _ -> failwith "Todo"
 
 
 let convert_function (Tac.Function {name; instructions}) =
