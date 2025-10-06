@@ -25,5 +25,4 @@ type t =
 | GreaterThan
 | LessThanOrEqualTo
 | GreaterThanOrEqualTo
-
 [@@deriving show]

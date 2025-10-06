@@ -6,10 +6,12 @@ let convert_binary_op = function
   | Ast.Multiply -> Tac.Multiply
   | Ast.Divide -> Tac.Divide
   | Ast.Modulo -> Tac.Modulo
+  | _ -> failwith "Todo"
 
 let convert_unary_op = function
   | Ast.Complement -> Tac.Complement
   | Ast.Negate -> Tac.Negate
+  | _ -> failwith "Todo"
 
 let rec convert_exp = function
   | Ast.Constant c -> ([], Tac.Constant c)

@@ -4,7 +4,11 @@ exception ParserError of string
 module Private = struct
   let precedence = function
   | Token.Multiplication | Token.Division | Token.Remainder -> Some 30
-  | Token.Addition | Token.Negation -> Some 20
+  | Token.Addition | Token.Negation -> Some 25
+  | Token.LessThan | Token.GreaterThan | Token.LessThanOrEqualTo | Token.GreaterThanOrEqualTo -> Some 20
+  | Token.EqualTo | Token.NotEqualTo -> Some 15
+  | Token.LogicalAnd -> Some 10
+  | Token.LogicalOr -> Some 5
   | _ -> None
 
   let parse_id tokens =
@@ -19,8 +23,9 @@ module Private = struct
   
   let parse_unary_op tokens =
     match tokens with
-    | BWComplement :: rest -> (Ast.Complement, rest)
-    | Negation :: rest -> (Ast.Negate, rest)
+    | Token.BWComplement :: rest -> (Ast.Complement, rest)
+    | Token.Negation :: rest -> (Ast.Negate, rest)
+    | Token.LogicalNot :: rest -> (Ast.Not, rest)
     | _ -> raise (ParserError "Expected unary operator")
   
   let parse_binary_op tokens =
@@ -30,7 +35,15 @@ module Private = struct
     | Remainder :: rest -> (Ast.Modulo, rest)
     | Addition :: rest -> (Ast.Add, rest)
     | Negation :: rest -> (Ast.Subtract, rest)
-    | _ -> raise (ParserError "Expected binary operator")
+    | LogicalAnd :: rest -> (Ast.And, rest)
+    | LogicalOr :: rest -> (Ast.Or, rest)
+    | EqualTo :: rest -> (Ast.EqualTo, rest)
+    | NotEqualTo :: rest -> (Ast.NotEqualTo, rest)
+    | LessThan :: rest -> (Ast.LessThan, rest)
+    | GreaterThan :: rest -> (Ast.GreaterThan, rest)
+    | LessThanOrEqualTo :: rest -> (Ast.LessThanOrEqualTo, rest)
+    | GreaterThanOrEqualTo :: rest -> (Ast.GreaterThanOrEqualTo, rest)
+    | _ -> raise (ParserError "Expected binary operator")    
 
   let rec parse_expression min_prec tokens =
     let (left, remaining) = parse_factor tokens in
@@ -51,7 +64,7 @@ module Private = struct
   and parse_factor tokens =
     match tokens with
     | Constant _ :: _ -> parse_int tokens
-    | (BWComplement :: rest | Negation :: rest) ->
+    | (BWComplement :: rest | Negation :: rest | LogicalNot :: rest) ->
       let (unaryop, _) = parse_unary_op tokens in
       let (expr, remaining) = parse_factor rest in
       (Ast.Unary {unary_operator = unaryop; expression = expr}, remaining )
