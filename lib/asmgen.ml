@@ -5,12 +5,14 @@ let convert_value = function
 let convert_unaryop = function
   | Tac.Negate -> Asm.Neg
   | Tac.Complement -> Asm.Not
+  | _ -> failwith "todo"
 
 let convert_binaryop = function
   | Tac.Add -> Asm.Add
   | Tac.Subtract -> Asm.Sub
   | Tac.Multiply -> Asm.Mult
   | Tac.Divide | Tac.Modulo -> failwith "Cannot convert division or modulo operators"
+  | _ -> failwith "todo"
 
 let convert_instruction = function
   | Tac.Return value ->
@@ -40,6 +42,7 @@ let convert_instruction = function
         Mov (asm_src1, asm_dst);
         Binary {binary_operator = asm_binaryop; operand1=asm_src2; operand2=asm_dst};
       ])
+  | _ -> failwith "todo"
 
 
 let convert_function (Tac.Function {name; instructions}) =
