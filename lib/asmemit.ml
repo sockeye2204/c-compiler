@@ -1,5 +1,16 @@
 open Asm
 
+let local_label label =
+  "L" ^ label
+
+let show_cond_code = function
+  | E -> "e"
+  | NE -> "ne"
+  | G -> "g"
+  | GE -> "ge"
+  | L -> "l"
+  | LE -> "le"
+
 let show_op = function
   | Register AX -> "%eax"
   | Register DX -> "%edx"
@@ -9,9 +20,18 @@ let show_op = function
   | Stack offset -> Printf.sprintf "%d(%%rbp)" offset
   | Pseudo _ -> failwith "Pseudo registers should have been replaced by this point"
 
+let show_byte_op = function
+  | Register AX -> "%al"
+  | Register DX -> "%dl"
+  | Register R10 -> "%r10b"
+  | Register R11 -> "%r11b"
+  | other -> show_op other
+
 let emit_instruction out_channel = function
   | Mov (src, dst) ->
     Printf.fprintf out_channel "\tmovl %s, %s\n" (show_op src) (show_op dst)
+  | Cmp {operand1; operand2} ->
+    Printf.fprintf out_channel "\tcmpl %s, %s\n" (show_op operand1) (show_op operand2)
   | Unary {unary_operator = Neg; operand} ->
     Printf.fprintf out_channel "\tnegl %s\n" (show_op operand)
   | Unary {unary_operator = Not; operand} ->
@@ -22,6 +42,14 @@ let emit_instruction out_channel = function
     Printf.fprintf out_channel "\tsubl %s, %s\n" (show_op operand1) (show_op operand2)
   | Binary {binary_operator = Mult; operand1; operand2} ->
     Printf.fprintf out_channel "\timull %s, %s\n" (show_op operand1) (show_op operand2)
+  | Jmp label ->
+    Printf.fprintf out_channel "\tjmp %s\n" (local_label label)
+  | JmpCC {cond_code; identifier} ->
+    Printf.fprintf out_channel "\tj%s %s\n" (show_cond_code cond_code) (local_label identifier)
+  | SetCC {cond_code; operand} ->
+    Printf.fprintf out_channel "\tset%s %s\n" (show_cond_code cond_code) (show_byte_op operand)
+  | Label label ->
+    Printf.fprintf out_channel "\t%s:\n" (local_label label)
   | Idiv operand ->
     Printf.fprintf out_channel "\tidivl %s\n" (show_op operand)
   | Cdq ->

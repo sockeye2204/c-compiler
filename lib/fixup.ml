@@ -14,6 +14,13 @@ let fixup_instruction = function
         Binary { binary_operator=Mult; operand1; operand2=(Register R11)};
         Mov (Register R11, operand2)
       ]
+  | Cmp { operand1; operand2 } ->
+    (match (operand1, operand2) with 
+    | (Stack _ as src), (Stack _ as dst) ->
+      [ Mov (src, Register R10); Cmp {operand1=(Register R10); operand2=dst} ]
+    | (src, Imm i) ->
+      [ Mov (Imm i, Register R11); Cmp {operand1=src; operand2=(Register R11)} ]
+    | _ -> [ Cmp {operand1; operand2} ])
   | other -> [ other ]
 
 let fixup_function last_stack_slot (Function { name; instructions }) =
