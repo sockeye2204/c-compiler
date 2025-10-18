@@ -1,11 +1,11 @@
+open C_compiler.Asmemit
+open C_compiler.Asmgen
+open C_compiler.Fixup
 open C_compiler.Lexer
 open C_compiler.Parser
+open C_compiler.Pseudo_replace
 open C_compiler.Resolve
 open C_compiler.Tacer
-open C_compiler.Asmgen
-open C_compiler.Pseudo_replace
-open C_compiler.Fixup
-open C_compiler.Asmemit
 
 let read_file filename =
   if Sys.file_exists filename then
@@ -23,7 +23,7 @@ let run_stage filename f =
   | None -> exit 1
   | Some content ->
     try f content; exit 0
-    with 
+    with
     | LexerError msg -> Printf.eprintf "Lexer error: %s\n" msg; exit 1
     | ParserError msg -> Printf.eprintf "Parser error: %s\n" msg; exit 1
     | Failure msg -> Printf.eprintf "Error: %s\n" msg; exit 1
@@ -81,13 +81,13 @@ let compile_to_executable filename =
 
 let () =
   match Array.to_list Sys.argv with
-  | [_; "--lex"; filename]     -> lex_file filename
-  | [_; "--parse"; filename]   -> parse_file filename
+  | [_; "--lex"; filename] -> lex_file filename
+  | [_; "--parse"; filename] -> parse_file filename
   | [_; "--validate"; filename] -> validate_file filename
-  | [_; "--tacky"; filename]   -> tac_file filename
+  | [_; "--tacky"; filename] -> tac_file filename
   | [_; "--codegen"; filename] -> codegen_file filename
-  | [_; "--asm"; filename]     -> generate_asm filename
-  | [_; filename]              -> compile_to_executable filename
+  | [_; "--asm"; filename] -> generate_asm filename
+  | [_; filename] -> compile_to_executable filename
   | _ ->
     print_endline "Usage: main [--lex|--parse|--validate|--codegen|--asm] <filename>";
     print_endline "  --lex:     Lex only";

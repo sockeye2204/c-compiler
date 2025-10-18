@@ -14,14 +14,14 @@ type match_def = {
 let literal tokn _str = tokn
 
 let conv_iden = function
-| "int" -> Token.KWInt
-| "return" -> Token.KWReturn
-| "void" -> Token.KWVoid
-| other -> Token.Identifier other
+  | "int" -> Token.KWInt
+  | "return" -> Token.KWReturn
+  | "void" -> Token.KWVoid
+  | other -> Token.Identifier other
 
 let conv_int str = Token.Constant (int_of_string str)
 
-let token_defs = 
+let token_defs =
   let def re_str converter =
     {
       re = Re.Pcre.regexp ~flags: [`ANCHORED] re_str; converter
@@ -42,13 +42,13 @@ let token_defs =
     def {_|\*|_} (literal Token.Multiplication);
     def {_|/|_} (literal Token.Division);
     def {_|%|_} (literal Token.Remainder);
-    def "!"  (literal Token.LogicalNot);
+    def "!" (literal Token.LogicalNot);
     def "&&" (literal Token.LogicalAnd);
     def "\\|\\|" (literal Token.LogicalOr);
     def "==" (literal Token.EqualTo);
     def "!=" (literal Token.NotEqualTo);
-    def "<"  (literal Token.LessThan);
-    def ">"  (literal Token.GreaterThan);
+    def "<" (literal Token.LessThan);
+    def ">" (literal Token.GreaterThan);
     def "<=" (literal Token.LessThanOrEqualTo);
     def ">=" (literal Token.GreaterThanOrEqualTo);
     def "=" (literal Token.Assignment);
@@ -75,11 +75,10 @@ let skip_preprocessor str =
   let preproc = Re.Pcre.regexp ~flags:[`ANCHORED] {|#[^\n]*|} in
   match Re.exec_opt preproc str with
   | Some mtch ->
-      let _, match_end = Re.Group.offset mtch 0 in
-      Some match_end
+    let _, match_end = Re.Group.offset mtch 0 in
+    Some match_end
   | None -> None
 
-      
 let skip_comment str =
   let single_line_comment = Re.Pcre.regexp ~flags: [`ANCHORED] {|//.*|} in
   let block_comment = Re.Pcre.regexp ~flags: [`ANCHORED] {|/\*.*?\*/|} in
@@ -111,8 +110,8 @@ let rec lexer input =
           else
             let compare_match_lengths m1 m2 =
               Int.compare
-              (String.length m1.matched_substr)
-              (String.length m2.matched_substr)
+                (String.length m1.matched_substr)
+                (String.length m2.matched_substr)
             in
             let longest_match = ListUtil.max compare_match_lengths matches in
             let converter = longest_match.matching_token.converter in
@@ -120,7 +119,7 @@ let rec lexer input =
             let next_tok = converter matching_substr in
             let remaining =
               StringUtil.drop
-              (String.length longest_match.matched_substr)
-              input
+                (String.length longest_match.matched_substr)
+                input
             in
             next_tok :: lexer remaining

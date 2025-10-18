@@ -7,24 +7,22 @@ type state = {
 
 let operand_replace state = function
   | Asm.Pseudo pseudo ->
-    (
-      match StringMap.find_opt pseudo state.offmap with
-      | Some off -> (state, Asm.Stack off)
-      | None ->
-        let new_off = state.off - 4 in
-        let new_state = {
-          off = new_off;
-          offmap = StringMap.add pseudo new_off state.offmap;
-        } in
-        (new_state, Asm.Stack new_off)
-    )
+    (match StringMap.find_opt pseudo state.offmap with
+     | Some off -> (state, Asm.Stack off)
+     | None ->
+       let new_off = state.off - 4 in
+       let new_state = {
+         off = new_off;
+         offmap = StringMap.add pseudo new_off state.offmap;
+       } in
+       (new_state, Asm.Stack new_off))
   | other -> (state, other)
 
 let instruction_replace state = function
   | Asm.Mov (src, dst) ->
     let state1, new_src = operand_replace state src in
     let state2, new_dst = operand_replace state1 dst in
-    (state2, Asm.Mov(new_src, new_dst))
+    (state2, Asm.Mov (new_src, new_dst))
   | Asm.Unary {unary_operator; operand} ->
     let state1, new_operand = operand_replace state operand in
     (state1, Asm.Unary {unary_operator; operand = new_operand})
@@ -34,7 +32,7 @@ let instruction_replace state = function
     (state2, Asm.Binary {binary_operator; operand1 = new_operand1; operand2 = new_operand2})
   | Asm.Idiv operand ->
     let state1, new_operand = operand_replace state operand in
-    (state1, Idiv new_operand)
+    (state1, Asm.Idiv new_operand)
   | Asm.Cmp {operand1; operand2} ->
     let state1, new_operand1 = operand_replace state operand1 in
     let state2, new_operand2 = operand_replace state1 operand2 in

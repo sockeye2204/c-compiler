@@ -1,6 +1,6 @@
 let convert_value = function
-  | (Tac.Constant i) -> Asm.Imm i
-  | (Tac.Var v) -> Asm.Pseudo v
+  | Tac.Constant i -> Asm.Imm i
+  | Tac.Var v -> Asm.Pseudo v
 
 let convert_unaryop = function
   | Tac.Negate -> Asm.Neg
@@ -18,7 +18,7 @@ let convert_instruction = function
   | Tac.Return value ->
     let v = convert_value value in
     [
-      Asm.Mov(v, (Asm.Register AX));
+      Asm.Mov (v, Asm.Register AX);
       Asm.Ret
     ]
   | Tac.Unary {unary_operator=unaryop; src; dst} -> (
@@ -34,8 +34,8 @@ let convert_instruction = function
     | _ ->
       let asm_unaryop = convert_unaryop unaryop in
       [
-        Asm.Mov(asm_src, asm_dst);
-        Asm.Unary{unary_operator=asm_unaryop; operand=asm_dst}
+        Asm.Mov (asm_src, asm_dst);
+        Asm.Unary {unary_operator=asm_unaryop; operand=asm_dst}
       ])
   | Tac.Binary {binary_operator=binaryop; src1; src2; dst} -> (
     let asm_src1 = convert_value src1 in
@@ -58,9 +58,9 @@ let convert_instruction = function
     | Tac.Divide | Tac.Modulo ->
       let result_reg = if binaryop = Tac.Divide then Asm.AX else Asm.DX in
       [
-        Asm.Mov (asm_src1, Asm.Register(Asm.AX));
+        Asm.Mov (asm_src1, Asm.Register Asm.AX);
         Asm.Cdq;
-        Asm.Idiv (asm_src2);
+        Asm.Idiv asm_src2;
         Asm.Mov (Asm.Register result_reg, asm_dst);
       ]
     | _ ->
@@ -74,14 +74,14 @@ let convert_instruction = function
   | Tac.JumpIfZero {condition; target} ->
     let asm_condition = convert_value condition in
     [
-      Asm.Cmp{operand1=Asm.Imm 0; operand2=asm_condition};
-      Asm.JmpCC{cond_code= E; identifier=target}
+      Asm.Cmp {operand1=Asm.Imm 0; operand2=asm_condition};
+      Asm.JmpCC {cond_code= E; identifier=target}
     ]
   | Tac.JumpIfNotZero {condition; target} ->
     let asm_condition = convert_value condition in 
     [
-      Asm.Cmp{operand1=Asm.Imm 0; operand2=asm_condition};
-      Asm.JmpCC{cond_code= NE; identifier=target}
+      Asm.Cmp {operand1=Asm.Imm 0; operand2=asm_condition};
+      Asm.JmpCC {cond_code= NE; identifier=target}
     ]
   | Tac.Label label ->
     [Asm.Label label]
@@ -93,6 +93,6 @@ let convert_instruction = function
 
 let convert_function (Tac.Function {name; instructions}) =
   let instructions_conv = List.concat_map convert_instruction instructions in
-  Asm.Function{name; instructions=instructions_conv}
+  Asm.Function {name; instructions = instructions_conv}
 
 let asmgen (Tac.Program function_def) = Asm.Program (convert_function function_def)
