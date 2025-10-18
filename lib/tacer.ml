@@ -22,8 +22,8 @@ let convert_unary_op = function
   let rec convert_exp = function
   | Ast.Constant c ->
       ([], Tac.Constant c)
-  | Ast.Var _name ->
-      failwith "Variable references not yet implemented"
+  | Ast.Var v ->
+      ([], Tac.Var v)
   | Ast.Unary { unary_operator = unaryop; expression = inner_section } ->
       let instructions, src = convert_exp inner_section in
       let dst_name = make_temp_id () in
@@ -31,8 +31,6 @@ let convert_unary_op = function
       let tacop = convert_unary_op unaryop in
       let newinstruction = Tac.Unary { unary_operator = tacop; src; dst } in
       (instructions @ [newinstruction], dst)
-  | Ast.Assignment { expression1 = _lhs; expression2 = _rhs } ->
-      failwith "Assignment expressions not yet implemented"
   | Ast.Binary{binary_operator=Ast.And; expression1=exp1; expression2=exp2} ->
       let instructions1, src1 = convert_exp exp1 in
       let instructions2, src2 = convert_exp exp2 in
@@ -83,6 +81,14 @@ let convert_unary_op = function
       let tacop = convert_binary_op binaryop in
       let newinstruction = Tac.Binary { binary_operator = tacop; src1; src2; dst } in
       (instructions1 @ instructions2 @ [newinstruction], dst)
+  | Ast.Assignment {expression1=Ast.Var v; expression2} ->
+    let instructions1, result = convert_exp expression2 in
+    let instructions =
+      instructions1 @ [Tac.Copy{src = result; dst = Tac.Var v}]
+    in
+    (instructions, Tac.Var v)
+  | Ast.Assignment _ -> failwith "Invalid lvalue for assignment!!!"
+
 
 
 let convert_statement stmt =
@@ -93,18 +99,20 @@ let convert_statement stmt =
       let v = snd result in
       exp @ [Tac.Return v]
   | Ast.Expression e ->
-      let result = convert_exp e in
-      fst result
-  | Ast.Null ->
-      []
+      let result, _er = convert_exp e in
+      result
+  | Ast.Null -> []
 
 let convert_block_item = function
   | Ast.S stmt -> convert_statement stmt
-  | Ast.D _decl ->
-      failwith "Variable declarations not yet implemented"
+  | Ast.D (Ast.Declaration {name; init = Some exp}) ->
+      let evaluate_assignment, _er = convert_exp (Ast.Assignment{expression1=Ast.Var name; expression2=exp}) in
+      evaluate_assignment
+  | Ast.D (Ast.Declaration{init = None; _}) -> []
 
 let convert_function (Ast.Function {name; body}) =
   let instructions = List.concat_map convert_block_item body in
-  Tac.Function{name; instructions}
+  let extra_return = Tac.Return(Constant 0) in
+  Tac.Function{name; instructions= instructions @ [extra_return]}
 
 let tacer (Ast.Program function_def) = Tac.Program (convert_function function_def)

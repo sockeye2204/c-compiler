@@ -43,7 +43,7 @@ let validate_file filename =
 
 let tac_file filename =
   run_stage filename (fun content ->
-    lexer content |> parser |> tacer |> ignore
+    lexer content |> parser |> resolve |> tacer |> ignore
   )
 
 let codegen_file filename =
@@ -56,7 +56,7 @@ let codegen_file filename =
 
 let generate_asm filename =
   run_stage filename (fun content ->
-    let asm_ast = lexer content |> parser |> tacer |> asmgen in
+    let asm_ast = lexer content |> parser |> resolve |> tacer |> asmgen in
     let asm_ast', last_off = pseudo_replace asm_ast in
     let asm_ast'' = fixup_program last_off asm_ast' in
     let base = Filename.chop_extension filename in
@@ -67,7 +67,7 @@ let generate_asm filename =
 
 let compile_to_executable filename =
   run_stage filename (fun content ->
-    let asm_ast = lexer content |> parser |> tacer |> asmgen in
+    let asm_ast = lexer content |> parser |> resolve |> tacer |> asmgen in
     let asm_ast', last_off = pseudo_replace asm_ast in
     let asm_ast'' = fixup_program last_off asm_ast' in
     let base = Filename.chop_extension filename in
