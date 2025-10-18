@@ -25,4 +25,5 @@ type t =
 | GreaterThan
 | LessThanOrEqualTo
 | GreaterThanOrEqualTo
+| Assignment
 [@@deriving show]

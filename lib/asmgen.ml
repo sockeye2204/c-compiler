@@ -58,10 +58,10 @@ let convert_instruction = function
     | Tac.Divide | Tac.Modulo ->
       let result_reg = if binaryop = Tac.Divide then Asm.AX else Asm.DX in
       [
-        Asm.Mov (asm_src1, Register(Asm.AX));
+        Asm.Mov (asm_src1, Asm.Register(Asm.AX));
         Asm.Cdq;
         Asm.Idiv (asm_src2);
-        Asm.Mov (Register result_reg, asm_dst);
+        Asm.Mov (Asm.Register result_reg, asm_dst);
       ]
     | _ ->
       let asm_binaryop = convert_binaryop binaryop in

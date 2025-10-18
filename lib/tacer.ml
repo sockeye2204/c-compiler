@@ -22,6 +22,8 @@ let convert_unary_op = function
   let rec convert_exp = function
   | Ast.Constant c ->
       ([], Tac.Constant c)
+  | Ast.Var _name ->
+      failwith "Variable references not yet implemented"
   | Ast.Unary { unary_operator = unaryop; expression = inner_section } ->
       let instructions, src = convert_exp inner_section in
       let dst_name = make_temp_id () in
@@ -29,6 +31,8 @@ let convert_unary_op = function
       let tacop = convert_unary_op unaryop in
       let newinstruction = Tac.Unary { unary_operator = tacop; src; dst } in
       (instructions @ [newinstruction], dst)
+  | Ast.Assignment { expression1 = _lhs; expression2 = _rhs } ->
+      failwith "Assignment expressions not yet implemented"
   | Ast.Binary{binary_operator=Ast.And; expression1=exp1; expression2=exp2} ->
       let instructions1, src1 = convert_exp exp1 in
       let instructions2, src2 = convert_exp exp2 in
@@ -88,8 +92,19 @@ let convert_statement stmt =
       let exp = fst result in
       let v = snd result in
       exp @ [Tac.Return v]
+  | Ast.Expression e ->
+      let result = convert_exp e in
+      fst result
+  | Ast.Null ->
+      []
+
+let convert_block_item = function
+  | Ast.S stmt -> convert_statement stmt
+  | Ast.D _decl ->
+      failwith "Variable declarations not yet implemented"
 
 let convert_function (Ast.Function {name; body}) =
-  Tac.Function{name; instructions = convert_statement body}
+  let instructions = List.concat_map convert_block_item body in
+  Tac.Function{name; instructions}
 
 let tacer (Ast.Program function_def) = Tac.Program (convert_function function_def)

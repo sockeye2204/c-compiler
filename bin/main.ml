@@ -22,7 +22,10 @@ let run_stage filename f =
   | None -> exit 1
   | Some content ->
     try f content; exit 0
-    with LexerError _ | ParserError _ -> exit 1
+    with 
+    | LexerError msg -> Printf.eprintf "Lexer error: %s\n" msg; exit 1
+    | ParserError msg -> Printf.eprintf "Parser error: %s\n" msg; exit 1
+    | Failure msg -> Printf.eprintf "Error: %s\n" msg; exit 1
 
 let lex_file filename =
   run_stage filename (fun content -> ignore (lexer content))

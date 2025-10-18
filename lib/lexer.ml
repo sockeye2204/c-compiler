@@ -51,6 +51,7 @@ let token_defs =
     def ">"  (literal Token.GreaterThan);
     def "<=" (literal Token.LessThanOrEqualTo);
     def ">=" (literal Token.GreaterThanOrEqualTo);
+    def "=" (literal Token.Assignment);
   ]
 
 let find_match str token_def =
