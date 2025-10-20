@@ -6,6 +6,10 @@ let simplify_compound_op = function
   | Ast.CompoundMultiplication -> Ast.Multiply
   | Ast.CompoundDivision -> Ast.Divide
   | Ast.CompoundRemainder -> Ast.Modulo
+  | Ast.PrefixIncrement -> Ast.Add
+  | Ast.PrefixDecrement -> Ast.Subtract
+  | Ast.PostfixIncrement -> Ast.Add
+  | Ast.PostfixDecrement -> Ast.Subtract
 
 let convert_binary_op = function
   | Ast.Add -> Tac.Add
@@ -39,18 +43,7 @@ let rec convert_exp = function
     let newinstruction = Tac.Unary { unary_operator = tacop; src; dst } in
     (instructions @ [newinstruction], dst)
   | Ast.Binary { binary_operator = binaryop; expression1 = exp1; expression2 = exp2 } ->
-    (match binaryop with 
-      (* | Ast.CompoundAddition
-      | Ast.CompoundSubtraction
-      | Ast.CompoundMultiplication
-      | Ast.CompoundDivision
-      | Ast.CompoundRemainder ->
-        let tacop = simplify_binary_op binaryop in
-        let simplified =
-          Ast.Assignment {expression1 = exp1;
-          expression2 = Ast.Binary { binary_operator = tacop; expression1 = exp1; expression2 = exp2}} in
-        let newinstruction, dst = convert_exp simplified in
-        (newinstruction, dst) *)
+    (match binaryop with
       | Ast.And ->
         let instructions1, src1 = convert_exp exp1 in
         let instructions2, src2 = convert_exp exp2 in
@@ -104,13 +97,38 @@ let rec convert_exp = function
   | Ast.Assignment {expression1=Ast.Var v; expression2; compound_operator} ->
     (match compound_operator with
     | Some op ->
-      let tacop = simplify_compound_op op in
-      let simplified =
-        Ast.Assignment {expression1 = Ast.Var v;
-        expression2 = Ast.Binary { binary_operator = tacop; expression1 = Ast.Var v; expression2 = expression2};
-        compound_operator = None} in
-      let newinstruction, dst = convert_exp simplified in
-      (newinstruction, dst)
+      (match op with
+      | CompoundAddition | CompoundSubtraction | CompoundMultiplication
+      | CompoundDivision | CompoundRemainder ->
+        let tacop = simplify_compound_op op in
+        let simplified =
+          Ast.Assignment {expression1 = Ast.Var v;
+          expression2 = Ast.Binary { binary_operator = tacop; expression1 = Ast.Var v; expression2 = expression2};
+          compound_operator = None} in
+        let newinstruction, dst = convert_exp simplified in
+        (newinstruction, dst)
+      | PrefixIncrement | PrefixDecrement ->
+        let tacop = simplify_compound_op op in
+        let simplified =
+          Ast.Assignment {expression1 = Ast.Var v;
+          expression2 = Ast.Binary { binary_operator = tacop; expression1 = Ast.Var v; expression2 = Ast.Constant 1 };
+          compound_operator = None} in
+        let crementbyone, dst = convert_exp simplified in
+        (crementbyone, dst)      
+      | PostfixIncrement | PostfixDecrement ->
+        let tacop = simplify_compound_op op in
+        let simplified =
+          Ast.Assignment {expression1 = Ast.Var v;
+          expression2 = Ast.Binary { binary_operator = tacop; expression1 = Ast.Var v; expression2 = Ast.Constant 1 };
+          compound_operator = None} in
+        let crementbyone, _ = convert_exp simplified in
+        let dst_name = make_temp_id () in
+        let dst = Tac.Var dst_name in
+        let instructions =
+          [Tac.Copy {src = Tac.Var v; dst };]
+          @ crementbyone
+        in
+        (instructions, dst))    
     | None ->
       let instructions1, result = convert_exp expression2 in
       let instructions =

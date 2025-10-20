@@ -14,9 +14,14 @@ module Private = struct
   | Token.Assignment -> Some 1
   | _ -> None
 
-  let parse_id tokens =
+  let rec parse_id tokens =
     match tokens with
     | Identifier name :: rest -> (name, rest)
+    | ParenOpen :: rest ->
+      let (name, rest) = parse_id rest in
+      (match rest with
+        | ParenClose :: rest -> (name, rest)
+        | _ -> raise (ParserError "Expected closing brace"))
     | _ -> raise (ParserError "Expected identifier name")
 
   let parse_int tokens =
@@ -46,11 +51,6 @@ module Private = struct
     | GreaterThan :: rest -> (Ast.GreaterThan, rest)
     | LessThanOrEqualTo :: rest -> (Ast.LessThanOrEqualTo, rest)
     | GreaterThanOrEqualTo :: rest -> (Ast.GreaterThanOrEqualTo, rest)
-    (* | CompoundAddition :: rest -> (Ast.CompoundAddition, rest)
-    | CompoundSubtraction :: rest -> (Ast.CompoundSubtraction, rest)
-    | CompoundMultiplication :: rest -> (Ast.CompoundMultiplication, rest)
-    | CompoundDivision :: rest -> (Ast.CompoundDivision, rest)
-    | CompoundRemainder :: rest -> (Ast.CompoundRemainder, rest) *)
     | _ -> raise (ParserError "Expected binary operator")
 
   let rec parse_expression min_prec tokens =
@@ -87,20 +87,47 @@ module Private = struct
     in
     p_e_while left remaining
 
-  and parse_factor tokens =
-    match tokens with
-    | Constant _ :: _ -> parse_int tokens
-    | Identifier name :: rest -> (Ast.Var name, rest)
-    | (BWComplement :: rest | Negation :: rest | LogicalNot :: rest) ->
-      let (unaryop, _) = parse_unary_op tokens in
-      let (expr, remaining) = parse_factor rest in
-      (Ast.Unary {unary_operator = unaryop; expression = expr}, remaining)
-    | ParenOpen :: rest ->
-      let (expr, remaining) = parse_expression 0 rest in
-      (match remaining with
-      | ParenClose :: rest -> (expr, rest)
-      | _ -> raise (ParserError "Expected closing brace"))
-    | _ -> raise (ParserError "Expected factor")
+    and parse_factor tokens =
+    
+      let parse_primary tokens =
+        match tokens with
+        | Constant _ :: _ -> parse_int tokens
+        | Identifier name :: rest -> 
+          (Ast.Var name, rest)
+        | ParenOpen :: rest ->
+          let (expr, remaining) = parse_expression 0 rest in
+          (match remaining with
+          | ParenClose :: rest -> (expr, rest)
+          | _ -> raise (ParserError "Expected closing brace"))
+        | _ -> raise (ParserError "Expected factor")
+      in
+  
+      let rec parse_postfix left tokens =
+        match tokens with
+        | Increment :: rest ->
+          let new_expr = Ast.Assignment {expression1 = left; expression2 = Ast.Constant 1; compound_operator = Some Ast.PostfixIncrement} in
+          parse_postfix new_expr rest
+        | Decrement :: rest ->
+          let new_expr = Ast.Assignment {expression1 = left; expression2 = Ast.Constant 1; compound_operator = Some Ast.PostfixDecrement} in
+          parse_postfix new_expr rest
+        | _ -> (left, tokens)
+      in
+  
+      match tokens with
+      | Increment :: rest ->
+        let (expr, remaining) = parse_factor rest in
+        (Ast.Assignment {expression1 = expr; expression2 = Ast.Constant 1; compound_operator = Some Ast.PrefixIncrement}, remaining)
+      | Decrement :: rest ->
+        let (expr, remaining) = parse_factor rest in
+        (Ast.Assignment {expression1 = expr; expression2 = Ast.Constant 1; compound_operator = Some Ast.PrefixDecrement}, remaining)
+      | (BWComplement :: rest | Negation :: rest | LogicalNot :: rest) ->
+        let (unaryop, _) = parse_unary_op tokens in
+        let (expr, remaining) = parse_factor rest in
+        (Ast.Unary {unary_operator = unaryop; expression = expr}, remaining)
+      | _ ->
+        let (primary_expr, remaining) = parse_primary tokens in
+        parse_postfix primary_expr remaining
+
 
   let parse_statement tokens =
     match tokens with
@@ -148,7 +175,6 @@ module Private = struct
           let tokens_ref = ref rest in
           let block_items = ref [] in
 
-          (* Consume block items until we reach a closing brace *)
           while match !tokens_ref with
             | BraceClose :: _ -> false
             | [] -> raise (ParserError "Unexpected end of input in function body")

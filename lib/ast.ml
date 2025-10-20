@@ -4,7 +4,9 @@ type binary_operator = Add | Subtract | Multiply | Divide | Modulo | And | Or
                     | EqualTo | NotEqualTo | LessThan | GreaterThan | LessThanOrEqualTo | GreaterThanOrEqualTo [@@deriving show]
 
 type compound_operator = CompoundAddition | CompoundSubtraction | CompoundMultiplication
-                    | CompoundDivision | CompoundRemainder [@@deriving show]
+                    | CompoundDivision | CompoundRemainder
+                    | PrefixIncrement | PrefixDecrement 
+                    | PostfixIncrement | PostfixDecrement [@@deriving show]
 
 type expression = Constant of int
                 | Var of string
