@@ -1,5 +1,12 @@
 open Tempids
 
+let simplify_compound_op = function
+  | Ast.CompoundAddition -> Ast.Add
+  | Ast.CompoundSubtraction -> Ast.Subtract
+  | Ast.CompoundMultiplication -> Ast.Multiply
+  | Ast.CompoundDivision -> Ast.Divide
+  | Ast.CompoundRemainder -> Ast.Modulo
+
 let convert_binary_op = function
   | Ast.Add -> Tac.Add
   | Ast.Subtract -> Tac.Subtract
@@ -31,62 +38,85 @@ let rec convert_exp = function
     let tacop = convert_unary_op unaryop in
     let newinstruction = Tac.Unary { unary_operator = tacop; src; dst } in
     (instructions @ [newinstruction], dst)
-  | Ast.Binary {binary_operator=Ast.And; expression1=exp1; expression2=exp2} ->
-    let instructions1, src1 = convert_exp exp1 in
-    let instructions2, src2 = convert_exp exp2 in
-    let false_label = make_label "and_false" in
-    let end_label = make_label "and_end" in
-    let dst_name = make_temp_id () in
-    let dst = Tac.Var dst_name in
-    let instructions =
-      instructions1
-      @ [Tac.JumpIfZero {condition=src1; target=false_label}]
-      @ instructions2
-      @ [
-        Tac.JumpIfZero {condition=src2; target=false_label};
-        Tac.Copy {src = Tac.Constant 1; dst};
-        Tac.Jump {target=end_label};
-        Tac.Label false_label;
-        Tac.Copy {src = Tac.Constant 0; dst};
-        Tac.Label end_label;
-      ]
-    in
-    (instructions, dst)
-  | Ast.Binary {binary_operator=Ast.Or; expression1=exp1; expression2=exp2} ->
-    let instructions1, src1 = convert_exp exp1 in
-    let instructions2, src2 = convert_exp exp2 in
-    let true_label = make_label "or_true" in
-    let end_label = make_label "or_end" in
-    let dst_name = make_temp_id () in
-    let dst = Tac.Var dst_name in
-    let instructions =
-      instructions1
-      @ [Tac.JumpIfNotZero {condition=src1; target=true_label}]
-      @ instructions2
-      @ [
-        Tac.JumpIfNotZero {condition=src2; target=true_label};
-        Tac.Copy {src = Tac.Constant 0; dst};
-        Tac.Jump {target=end_label};
-        Tac.Label true_label;
-        Tac.Copy {src = Tac.Constant 1; dst};
-        Tac.Label end_label;
-      ]
-    in
-    (instructions, dst)
   | Ast.Binary { binary_operator = binaryop; expression1 = exp1; expression2 = exp2 } ->
-    let instructions1, src1 = convert_exp exp1 in
-    let instructions2, src2 = convert_exp exp2 in
-    let dst_name = make_temp_id () in
-    let dst = Tac.Var dst_name in
-    let tacop = convert_binary_op binaryop in
-    let newinstruction = Tac.Binary { binary_operator = tacop; src1; src2; dst } in
-    (instructions1 @ instructions2 @ [newinstruction], dst)
-  | Ast.Assignment {expression1=Ast.Var v; expression2} ->
-    let instructions1, result = convert_exp expression2 in
-    let instructions =
-      instructions1 @ [Tac.Copy {src = result; dst = Tac.Var v}]
-    in
-    (instructions, Tac.Var v)
+    (match binaryop with 
+      (* | Ast.CompoundAddition
+      | Ast.CompoundSubtraction
+      | Ast.CompoundMultiplication
+      | Ast.CompoundDivision
+      | Ast.CompoundRemainder ->
+        let tacop = simplify_binary_op binaryop in
+        let simplified =
+          Ast.Assignment {expression1 = exp1;
+          expression2 = Ast.Binary { binary_operator = tacop; expression1 = exp1; expression2 = exp2}} in
+        let newinstruction, dst = convert_exp simplified in
+        (newinstruction, dst) *)
+      | Ast.And ->
+        let instructions1, src1 = convert_exp exp1 in
+        let instructions2, src2 = convert_exp exp2 in
+        let false_label = make_label "and_false" in
+        let end_label = make_label "and_end" in
+        let dst_name = make_temp_id () in
+        let dst = Tac.Var dst_name in
+        let instructions =
+          instructions1
+          @ [Tac.JumpIfZero {condition=src1; target=false_label}]
+          @ instructions2
+          @ [
+            Tac.JumpIfZero {condition=src2; target=false_label};
+            Tac.Copy {src = Tac.Constant 1; dst};
+            Tac.Jump {target=end_label};
+            Tac.Label false_label;
+            Tac.Copy {src = Tac.Constant 0; dst};
+            Tac.Label end_label;
+          ]
+        in
+        (instructions, dst)
+      | Ast.Or ->
+        let instructions1, src1 = convert_exp exp1 in
+        let instructions2, src2 = convert_exp exp2 in
+        let true_label = make_label "or_true" in
+        let end_label = make_label "or_end" in
+        let dst_name = make_temp_id () in
+        let dst = Tac.Var dst_name in
+        let instructions =
+          instructions1
+          @ [Tac.JumpIfNotZero {condition=src1; target=true_label}]
+          @ instructions2
+          @ [
+            Tac.JumpIfNotZero {condition=src2; target=true_label};
+            Tac.Copy {src = Tac.Constant 0; dst};
+            Tac.Jump {target=end_label};
+            Tac.Label true_label;
+            Tac.Copy {src = Tac.Constant 1; dst};
+            Tac.Label end_label;
+          ]
+        in
+        (instructions, dst)
+      | _ ->
+        let instructions1, src1 = convert_exp exp1 in
+        let instructions2, src2 = convert_exp exp2 in
+        let dst_name = make_temp_id () in
+        let dst = Tac.Var dst_name in
+        let tacop = convert_binary_op binaryop in
+        let newinstruction = Tac.Binary { binary_operator = tacop; src1; src2; dst } in
+        (instructions1 @ instructions2 @ [newinstruction], dst))
+  | Ast.Assignment {expression1=Ast.Var v; expression2; compound_operator} ->
+    (match compound_operator with
+    | Some op ->
+      let tacop = simplify_compound_op op in
+      let simplified =
+        Ast.Assignment {expression1 = Ast.Var v;
+        expression2 = Ast.Binary { binary_operator = tacop; expression1 = Ast.Var v; expression2 = expression2};
+        compound_operator = None} in
+      let newinstruction, dst = convert_exp simplified in
+      (newinstruction, dst)
+    | None ->
+      let instructions1, result = convert_exp expression2 in
+      let instructions =
+        instructions1 @ [Tac.Copy {src = result; dst = Tac.Var v}]
+      in
+      (instructions, Tac.Var v))
   | Ast.Assignment _ -> failwith "Invalid lvalue for assignment!!!"
 
 let convert_statement stmt =
@@ -104,7 +134,7 @@ let convert_statement stmt =
 let convert_block_item = function
   | Ast.S stmt -> convert_statement stmt
   | Ast.D (Ast.Declaration {name; init = Some exp}) ->
-    let evaluate_assignment, _er = convert_exp (Ast.Assignment {expression1=Ast.Var name; expression2=exp}) in
+    let evaluate_assignment, _er = convert_exp (Ast.Assignment {expression1=Ast.Var name; expression2=exp; compound_operator=None}) in
     evaluate_assignment
   | Ast.D (Ast.Declaration {init = None; _}) -> []
 

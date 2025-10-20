@@ -3,12 +3,13 @@ module StringMap = Map.Make (String)
 
 let rec resolve_exp var_map exp =
   match exp with
-  | Ast.Assignment { expression1; expression2 } ->
+  | Ast.Assignment { expression1; expression2; _ } ->
     (match expression1 with
      | Ast.Var _ ->
        Ast.Assignment {
          expression1 = resolve_exp var_map expression1;
          expression2 = resolve_exp var_map expression2;
+         compound_operator = None;
        }
      | _ ->
        failwith "Invalid lvalue! Must be Var AST node")

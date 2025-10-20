@@ -38,6 +38,11 @@ let token_defs =
     def "--" (literal Token.Decrement);
     def "-" (literal Token.Negation);
     def "~" (literal Token.BWComplement);
+    def {|\+=|} (literal Token.CompoundAddition);
+    def {|-=|} (literal Token.CompoundSubtraction);
+    def {|\*=|} (literal Token.CompoundMultiplication);
+    def {|/=|} (literal Token.CompoundDivision);
+    def {|%=|} (literal Token.CompoundRemainder);
     def {_|\+|_} (literal Token.Addition);
     def {_|\*|_} (literal Token.Multiplication);
     def {_|/|_} (literal Token.Division);
@@ -81,7 +86,7 @@ let skip_preprocessor str =
 
 let skip_comment str =
   let single_line_comment = Re.Pcre.regexp ~flags: [`ANCHORED] {|//.*|} in
-  let block_comment = Re.Pcre.regexp ~flags: [`ANCHORED] {|/\*.*?\*/|} in
+  let block_comment = Re.Pcre.regexp ~flags: [`ANCHORED; `DOTALL] {|/\*.*?\*/|} in
   match Re.exec_opt single_line_comment str with
   | Some mtch ->
     let _, match_end = Re.Group.offset mtch 0 in

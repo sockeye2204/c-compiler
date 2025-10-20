@@ -9,6 +9,8 @@ module Private = struct
   | Token.EqualTo | Token.NotEqualTo -> Some 15
   | Token.LogicalAnd -> Some 10
   | Token.LogicalOr -> Some 5
+  | Token.CompoundAddition | Token.CompoundSubtraction | Token.CompoundMultiplication
+  | Token.CompoundDivision | Token.CompoundRemainder
   | Token.Assignment -> Some 1
   | _ -> None
 
@@ -44,6 +46,11 @@ module Private = struct
     | GreaterThan :: rest -> (Ast.GreaterThan, rest)
     | LessThanOrEqualTo :: rest -> (Ast.LessThanOrEqualTo, rest)
     | GreaterThanOrEqualTo :: rest -> (Ast.GreaterThanOrEqualTo, rest)
+    (* | CompoundAddition :: rest -> (Ast.CompoundAddition, rest)
+    | CompoundSubtraction :: rest -> (Ast.CompoundSubtraction, rest)
+    | CompoundMultiplication :: rest -> (Ast.CompoundMultiplication, rest)
+    | CompoundDivision :: rest -> (Ast.CompoundDivision, rest)
+    | CompoundRemainder :: rest -> (Ast.CompoundRemainder, rest) *)
     | _ -> raise (ParserError "Expected binary operator")
 
   let rec parse_expression min_prec tokens =
@@ -55,10 +62,21 @@ module Private = struct
         match precedence next with
         | Some prec when prec >= min_prec ->
           (match next with
-           | Token.Assignment ->
+           | Token.CompoundAddition | Token.CompoundSubtraction | Token.CompoundMultiplication
+           | Token.CompoundDivision | Token.CompoundRemainder | Token.Assignment ->
              let remaining2 = List.tl remaining in
              let (right, remaining3) = parse_expression prec remaining2 in
-             let left = Ast.Assignment { expression1 = left; expression2 = right } in
+             let compoundop = 
+              match next with
+              | Token.CompoundAddition -> Some Ast.CompoundAddition
+              | Token.CompoundSubtraction -> Some Ast.CompoundSubtraction
+              | Token.CompoundMultiplication -> Some Ast.CompoundMultiplication
+              | Token.CompoundDivision -> Some Ast.CompoundDivision
+              | Token.CompoundRemainder -> Some Ast.CompoundRemainder
+              | Token.Assignment -> None
+              | _ -> failwith "Invalid assignment operator for compound operator"
+             in
+             let left = Ast.Assignment { expression1 = left; expression2 = right; compound_operator = compoundop } in
              p_e_while left remaining3
            | _ ->
              let (operator, remaining2) = parse_binary_op remaining in

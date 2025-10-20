@@ -26,4 +26,9 @@ type t =
   | LessThanOrEqualTo
   | GreaterThanOrEqualTo
   | Assignment
+  | CompoundAddition
+  | CompoundSubtraction
+  | CompoundMultiplication
+  | CompoundDivision
+  | CompoundRemainder
 [@@deriving show]
