@@ -21,6 +21,10 @@ After assembly has been generated, it is fed into gcc by invoking `gcc -m64 -arc
  - Local variable declaration
  - Datatypes (int)
 
+### Control flow
+ - If statement
+ - Conditional operator
+
 ### Operators
  - Unary operators (Complement, Negate, Not)
  - Arithmetic binary operators (Add, Subtract, Multiply, Divide, Remainder)
@@ -32,4 +36,4 @@ After assembly has been generated, it is fed into gcc by invoking `gcc -m64 -arc
 
 ## What's next?
 
-Conditional expressions (if statements).
+Goto and labels.

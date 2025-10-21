@@ -136,9 +136,61 @@ let rec convert_exp = function
       in
       (instructions, Tac.Var v))
   | Ast.Assignment _ -> failwith "Invalid lvalue for assignment!!!"
+  | Ast.Conditional { condition; expression1; expression2 } ->
+    let instructions_cond, src_cond = convert_exp condition in
+    let instructions_expression1, src_exp1 = convert_exp expression1 in
+    let instructions_expression2, src_exp2 = convert_exp expression2 in
+    let end_label = make_label "end" in
+    let else_label = make_label "else_label" in
+    let dst_name = make_temp_id () in
+    let dst = Tac.Var dst_name in
+    let instructions =
+    instructions_cond
+    @ [Tac.JumpIfZero {condition=src_cond; target=else_label}]
+    @ instructions_expression1
+    @ [
+      Tac.Copy {src = src_exp1; dst = dst};
+      Tac.Jump {target=end_label};
+      ]
+    @ [Tac.Label else_label]
+    @ instructions_expression2
+    @ [
+      Tac.Copy {src = src_exp2; dst = dst};
+      ]
+    @ [Tac.Label end_label]
+    in
+    (instructions, dst)
 
-let convert_statement stmt =
+
+let rec convert_statement stmt =
   match stmt with
+  | Ast.If { condition; thenb; elseb } ->
+    let instructions_cond, src_cond = convert_exp condition in
+    let instructions_thenb = convert_statement thenb in
+    let end_label = make_label "end" in
+    (match elseb with
+      | Some stmt ->
+        let instructions_elseb = convert_statement stmt in
+        let else_label = make_label "else_label" in
+        let instructions =
+        instructions_cond
+        @ [Tac.JumpIfZero {condition=src_cond; target=else_label}]
+        @ instructions_thenb
+        @ [Tac.Jump {target=end_label}]
+        @ [Tac.Label else_label]
+        @ instructions_elseb
+        @ [Tac.Label end_label]
+        in
+        instructions
+      | None ->
+        let instructions =
+        instructions_cond
+        @ [Tac.JumpIfZero {condition=src_cond; target=end_label}]
+        @ instructions_thenb
+        @ [Tac.Label end_label];
+        in
+        instructions
+    )
   | Ast.Return e ->
     let result = convert_exp e in
     let exp = fst result in

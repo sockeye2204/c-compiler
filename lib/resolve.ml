@@ -3,6 +3,12 @@ module StringMap = Map.Make (String)
 
 let rec resolve_exp var_map exp =
   match exp with
+  | Ast.Conditional { condition; expression1; expression2 } ->
+    Ast.Conditional {
+      condition = resolve_exp var_map condition;
+      expression1 = resolve_exp var_map expression1;
+      expression2 = resolve_exp var_map expression2;
+    }
   | Ast.Assignment { expression1; expression2; compound_operator } ->
     (match expression1 with
      | Ast.Var _ ->
@@ -39,10 +45,18 @@ let resolve_declaration var_map (Ast.Declaration {name; init}) =
     let resolved_init = Option.map (resolve_exp new_map) init in
     (new_map, Ast.Declaration {name=unique_name; init=resolved_init})
 
-let resolve_statement var_map stmt =
+let rec resolve_statement var_map stmt =
   match stmt with
   | Ast.Return exp -> Ast.Return (resolve_exp var_map exp)
   | Ast.Expression exp -> Ast.Expression (resolve_exp var_map exp)
+  | Ast.If { condition; thenb; elseb } ->
+    Ast.If {
+      condition = resolve_exp var_map condition;
+      thenb = resolve_statement var_map thenb;
+      elseb = (match elseb with
+      | Some stmt -> Some (resolve_statement var_map stmt)
+      | None -> None);
+    }
   | Ast.Null -> Ast.Null
 
 let resolve_block_item var_map block_item =

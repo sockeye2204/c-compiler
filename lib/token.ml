@@ -32,4 +32,8 @@ type t =
   | CompoundMultiplication
   | CompoundDivision
   | CompoundRemainder
+  | KWIf
+  | KWElse
+  | QuestionMark
+  | Colon
 [@@deriving show]

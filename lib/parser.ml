@@ -11,6 +11,7 @@ module Private = struct
   | Token.LogicalOr -> Some 5
   | Token.CompoundAddition | Token.CompoundSubtraction | Token.CompoundMultiplication
   | Token.CompoundDivision | Token.CompoundRemainder
+  | Token.QuestionMark -> Some 3
   | Token.Assignment -> Some 1
   | _ -> None
 
@@ -78,6 +79,11 @@ module Private = struct
              in
              let left = Ast.Assignment { expression1 = left; expression2 = right; compound_operator = compoundop } in
              p_e_while left remaining3
+           | Token.QuestionMark ->
+            let (middle, remaining) = parse_conditional_middle remaining in
+            let (right, remaining) = parse_expression prec remaining in
+            let left = Ast.Conditional { condition = left; expression1 = middle; expression2 = right} in
+            p_e_while left remaining
            | _ ->
              let (operator, remaining2) = parse_binary_op remaining in
              let (right, remaining3) = parse_expression (prec + 1) remaining2 in
@@ -87,55 +93,72 @@ module Private = struct
     in
     p_e_while left remaining
 
-    and parse_factor tokens =
-    
-      let parse_primary tokens =
-        match tokens with
-        | Constant _ :: _ -> parse_int tokens
-        | Identifier name :: rest -> 
-          (Ast.Var name, rest)
-        | ParenOpen :: rest ->
-          let (expr, remaining) = parse_expression 0 rest in
-          (match remaining with
-          | ParenClose :: rest -> (expr, rest)
-          | _ -> raise (ParserError "Expected closing brace"))
-        | _ -> raise (ParserError "Expected factor")
-      in
+  and parse_factor tokens =
   
-      let rec parse_postfix left tokens =
-        match tokens with
-        | Increment :: rest ->
-          let new_expr = Ast.Assignment {expression1 = left; expression2 = Ast.Constant 1; compound_operator = Some Ast.PostfixIncrement} in
-          parse_postfix new_expr rest
-        | Decrement :: rest ->
-          let new_expr = Ast.Assignment {expression1 = left; expression2 = Ast.Constant 1; compound_operator = Some Ast.PostfixDecrement} in
-          parse_postfix new_expr rest
-        | _ -> (left, tokens)
-      in
-  
+    let parse_primary tokens =
+      match tokens with
+      | Constant _ :: _ -> parse_int tokens
+      | Identifier name :: rest -> 
+        (Ast.Var name, rest)
+      | ParenOpen :: rest ->
+        let (expr, remaining) = parse_expression 0 rest in
+        (match remaining with
+        | ParenClose :: rest -> (expr, rest)
+        | _ -> raise (ParserError "Expected closing brace"))
+      | _ -> raise (ParserError "Expected factor")
+    in
+
+    let rec parse_postfix left tokens =
       match tokens with
       | Increment :: rest ->
-        let (expr, remaining) = parse_factor rest in
-        (Ast.Assignment {expression1 = expr; expression2 = Ast.Constant 1; compound_operator = Some Ast.PrefixIncrement}, remaining)
+        let new_expr = Ast.Assignment {expression1 = left; expression2 = Ast.Constant 1; compound_operator = Some Ast.PostfixIncrement} in
+        parse_postfix new_expr rest
       | Decrement :: rest ->
-        let (expr, remaining) = parse_factor rest in
-        (Ast.Assignment {expression1 = expr; expression2 = Ast.Constant 1; compound_operator = Some Ast.PrefixDecrement}, remaining)
-      | (BWComplement :: rest | Negation :: rest | LogicalNot :: rest) ->
-        let (unaryop, _) = parse_unary_op tokens in
-        let (expr, remaining) = parse_factor rest in
-        (Ast.Unary {unary_operator = unaryop; expression = expr}, remaining)
-      | _ ->
-        let (primary_expr, remaining) = parse_primary tokens in
-        parse_postfix primary_expr remaining
+        let new_expr = Ast.Assignment {expression1 = left; expression2 = Ast.Constant 1; compound_operator = Some Ast.PostfixDecrement} in
+        parse_postfix new_expr rest
+      | _ -> (left, tokens)
+    in
 
+    match tokens with
+    | Increment :: rest ->
+      let (expr, remaining) = parse_factor rest in
+      (Ast.Assignment {expression1 = expr; expression2 = Ast.Constant 1; compound_operator = Some Ast.PrefixIncrement}, remaining)
+    | Decrement :: rest ->
+      let (expr, remaining) = parse_factor rest in
+      (Ast.Assignment {expression1 = expr; expression2 = Ast.Constant 1; compound_operator = Some Ast.PrefixDecrement}, remaining)
+    | (BWComplement :: rest | Negation :: rest | LogicalNot :: rest) ->
+      let (unaryop, _) = parse_unary_op tokens in
+      let (expr, remaining) = parse_factor rest in
+      (Ast.Unary {unary_operator = unaryop; expression = expr}, remaining)
+    | _ ->
+      let (primary_expr, remaining) = parse_primary tokens in
+      parse_postfix primary_expr remaining
 
-  let parse_statement tokens =
+  and parse_conditional_middle tokens =
+    let remaining = List.tl tokens in
+    let (expr, remaining) = parse_expression 0 remaining in
+    let remaining = List.tl remaining in
+    (expr, remaining)
+
+  let rec parse_statement tokens =
     match tokens with
     | KWReturn :: rest ->
       let (expr, remaining) = parse_expression 0 rest in
       (match remaining with
       | Semicolon :: rest -> (Ast.Return expr, rest)
       | _ -> raise (ParserError "Expected semicolon"))
+    | KWIf :: ParenOpen :: rest ->
+      let (expr, remaining) = parse_expression 0 rest in
+      (match remaining with
+      | ParenClose :: rest ->
+        let (ifstmt, remaining) = parse_statement rest in
+        (match remaining with
+        | KWElse :: rest ->
+          let (elsestmt, remaining) = parse_statement rest in
+          (Ast.If {condition = expr; thenb = ifstmt; elseb = Some elsestmt}, remaining)
+        | _ -> (Ast.If {condition = expr; thenb = ifstmt; elseb = None}, remaining)
+        )
+      | _ -> raise (ParserError "Expected closing parenthesis in if statement"))
     | Semicolon :: rest -> (Ast.Null, rest)
     | _ ->
       let (expr, remaining) = parse_expression 0 tokens in

@@ -17,6 +17,8 @@ let conv_iden = function
   | "int" -> Token.KWInt
   | "return" -> Token.KWReturn
   | "void" -> Token.KWVoid
+  | "if" -> Token.KWIf
+  | "else" -> Token.KWElse
   | other -> Token.Identifier other
 
 let conv_int str = Token.Constant (int_of_string str)
@@ -58,6 +60,8 @@ let token_defs =
     def "<=" (literal Token.LessThanOrEqualTo);
     def ">=" (literal Token.GreaterThanOrEqualTo);
     def "=" (literal Token.Assignment);
+    def {|\?|} (literal Token.QuestionMark);
+    def ":" (literal Token.Colon);
   ]
 
 let find_match str token_def =
