@@ -6,6 +6,7 @@ open C_compiler.Parser
 open C_compiler.Pseudo_replace
 open C_compiler.Resolve
 open C_compiler.Tacer
+open C_compiler.Labelnames
 
 let read_file filename =
   if Sys.file_exists filename then
@@ -38,17 +39,17 @@ let parse_file filename =
 
 let validate_file filename =
   run_stage filename (fun content ->
-    lexer content |> parser |> resolve |> ignore
+    lexer content |> parser |> labelnames |> resolve |> ignore
   )
 
 let tac_file filename =
   run_stage filename (fun content ->
-    lexer content |> parser |> resolve |> tacer |> ignore
+    lexer content |> parser |> labelnames |> resolve |> tacer |> ignore
   )
 
 let codegen_file filename =
   run_stage filename (fun content ->
-    let asm_ast = lexer content |> parser |> tacer |> asmgen in
+    let asm_ast = lexer content |> parser |> labelnames |> resolve |> tacer |> asmgen in
     let asm_ast', _ = pseudo_replace asm_ast in
     let asm_ast'' = fixup_program 0 asm_ast' in
     ignore asm_ast''
@@ -56,7 +57,7 @@ let codegen_file filename =
 
 let generate_asm filename =
   run_stage filename (fun content ->
-    let asm_ast = lexer content |> parser |> resolve |> tacer |> asmgen in
+    let asm_ast = lexer content |> parser |> labelnames |> resolve |> tacer |> asmgen in
     let asm_ast', last_off = pseudo_replace asm_ast in
     let asm_ast'' = fixup_program last_off asm_ast' in
     let base = Filename.chop_extension filename in
@@ -67,7 +68,7 @@ let generate_asm filename =
 
 let compile_to_executable filename =
   run_stage filename (fun content ->
-    let asm_ast = lexer content |> parser |> resolve |> tacer |> asmgen in
+    let asm_ast = lexer content |> parser |> labelnames |> resolve |> tacer |> asmgen in
     let asm_ast', last_off = pseudo_replace asm_ast in
     let asm_ast'' = fixup_program last_off asm_ast' in
     let base = Filename.chop_extension filename in

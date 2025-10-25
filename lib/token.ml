@@ -36,4 +36,5 @@ type t =
   | KWElse
   | QuestionMark
   | Colon
+  | KWGoto
 [@@deriving show]

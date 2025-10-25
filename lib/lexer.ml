@@ -19,6 +19,7 @@ let conv_iden = function
   | "void" -> Token.KWVoid
   | "if" -> Token.KWIf
   | "else" -> Token.KWElse
+  | "goto" -> Token.KWGoto
   | other -> Token.Identifier other
 
 let conv_int str = Token.Constant (int_of_string str)

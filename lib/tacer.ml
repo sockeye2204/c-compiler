@@ -199,6 +199,8 @@ let rec convert_statement stmt =
   | Ast.Expression e ->
     let result, _er = convert_exp e in
     result
+  | Ast.Goto {target} -> [Tac.Jump {target}]
+  | Ast.Label name -> [Tac.Label name]
   | Ast.Null -> []
 
 let convert_block_item = function

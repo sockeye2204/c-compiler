@@ -18,6 +18,8 @@ type expression = Constant of int
 type statement = Return of expression
               | Expression of expression
               | If of {condition: expression; thenb: statement; elseb: statement option}
+              | Goto of {target: string}
+              | Label of string
               | Null [@@deriving show]
 
 type declaration = Declaration of {name: string; init: expression option} [@@deriving show]

@@ -159,6 +159,12 @@ module Private = struct
         | _ -> (Ast.If {condition = expr; thenb = ifstmt; elseb = None}, remaining)
         )
       | _ -> raise (ParserError "Expected closing parenthesis in if statement"))
+    | KWGoto :: Identifier target :: Semicolon :: rest ->
+      (Ast.Goto {target = target}, rest)
+    | Identifier name :: Colon :: rest ->
+      (* Should be invalid in C17 and valid in C23 - add a version flag? *)
+      let (_, _) = parse_statement rest in
+      (Ast.Label name, rest)
     | Semicolon :: rest -> (Ast.Null, rest)
     | _ ->
       let (expr, remaining) = parse_expression 0 tokens in

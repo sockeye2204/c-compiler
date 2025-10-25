@@ -1,5 +1,5 @@
 open Tempids
-module StringMap = Map.Make (String)
+module VarMap = Map.Make (String)
 
 let rec resolve_exp var_map exp =
   match exp with
@@ -20,8 +20,8 @@ let rec resolve_exp var_map exp =
      | _ ->
        failwith "Invalid lvalue! Must be Var AST node")
   | Ast.Var v ->
-    if StringMap.mem v var_map then
-      Ast.Var (StringMap.find v var_map)
+    if VarMap.mem v var_map then
+      Ast.Var (VarMap.find v var_map)
     else
       failwith "Undeclared variable!"
   | Ast.Unary {unary_operator; expression} ->
@@ -38,10 +38,10 @@ let rec resolve_exp var_map exp =
   | Ast.Constant _ as c -> c
 
 let resolve_declaration var_map (Ast.Declaration {name; init}) =
-  if StringMap.mem name var_map then failwith "Duplicate variable declaration!"
+  if VarMap.mem name var_map then failwith "Duplicate variable declaration!"
   else
     let unique_name = make_named_temporary name in
-    let new_map = StringMap.add name unique_name var_map in
+    let new_map = VarMap.add name unique_name var_map in
     let resolved_init = Option.map (resolve_exp new_map) init in
     (new_map, Ast.Declaration {name=unique_name; init=resolved_init})
 
@@ -57,6 +57,8 @@ let rec resolve_statement var_map stmt =
       | Some stmt -> Some (resolve_statement var_map stmt)
       | None -> None);
     }
+  | Ast.Goto target -> Ast.Goto target
+  | Ast.Label name -> Ast.Label name
   | Ast.Null -> Ast.Null
 
 let resolve_block_item var_map block_item =
@@ -69,7 +71,7 @@ let resolve_block_item var_map block_item =
     (new_map, Ast.D resolved_d)
 
 let resolve_function (Ast.Function {name; body}) =
-  let var_map = StringMap.empty in
+  let var_map = VarMap.empty in
   let _final_map, resolved_body =
     List.fold_left_map resolve_block_item var_map body
   in
