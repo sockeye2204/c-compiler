@@ -20,10 +20,13 @@ After assembly has been generated, it is fed into gcc by invoking `gcc -m64 -arc
 
  - Local variable declaration
  - Datatypes (int)
+ - Compound statements (scopes)
 
 ### Control flow
  - If statement
  - Conditional operator
+ - Goto
+ - Labels
 
 ### Operators
  - Unary operators (Complement, Negate, Not)
@@ -36,4 +39,4 @@ After assembly has been generated, it is fed into gcc by invoking `gcc -m64 -arc
 
 ## What's next?
 
-Goto and labels.
+Loops.
