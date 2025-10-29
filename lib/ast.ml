@@ -15,18 +15,21 @@ type expression = Constant of int
                 | Assignment of {expression1: expression; expression2: expression; compound_operator: compound_operator option}
                 | Conditional of {condition: expression; expression1: expression; expression2: expression} [@@deriving show]
 
-type statement = Return of expression
+and statement = Return of expression
               | Expression of expression
               | If of {condition: expression; thenb: statement; elseb: statement option}
               | Goto of {target: string}
               | Label of string
+              | Compound of block
               | Null [@@deriving show]
 
-type declaration = Declaration of {name: string; init: expression option} [@@deriving show]
+and declaration = Declaration of {name: string; init: expression option} [@@deriving show]
 
-type block_item = S of statement
+and block_item = S of statement
                 | D of declaration [@@deriving show]
 
-type function_def = Function of {name: string; body: block_item list} [@@deriving show]
+and block = Block of block_item list [@@deriving show]
 
-type t = Program of function_def [@@deriving show]
+and function_def = Function of {name: string; body: block} [@@deriving show]
+
+and t = Program of function_def [@@deriving show]

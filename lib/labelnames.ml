@@ -32,10 +32,13 @@ let rec labelnames_statement mode label_map stmt =
     | None ->
       (new_map, Ast.If {condition; thenb = new_thenb; elseb = None})
     )
+  | Ast.Compound block ->
+    let new_map, new_block = labelnames_block label_map block in
+    (new_map, Ast.Compound new_block)
   | other -> (label_map, other)
   )
 
-let labelnames_block_item mode label_map block_item =
+and labelnames_block_item mode label_map block_item =
   (match block_item with
   | Ast.S s ->
     let new_map, labelnames_s = labelnames_statement mode label_map s in
@@ -43,14 +46,18 @@ let labelnames_block_item mode label_map block_item =
   | other -> (label_map, other)
   )
 
-  let labelnames_function (Ast.Function {name; body}) =
-    let label_map = LabelMap.empty in
-    let label_map, labelnames_body =
-      List.fold_left_map (labelnames_block_item "label") label_map body
-    in
-    let _, labelnames_body =
-      List.fold_left_map (labelnames_block_item "goto") label_map labelnames_body
-    in
-    Ast.Function {name; body = labelnames_body}  
+and labelnames_block label_map (Ast.Block block) = 
+  let label_map, labelnames_block =
+    List.fold_left_map (labelnames_block_item "label") label_map block
+  in
+  let _, labelnames_block =
+    List.fold_left_map (labelnames_block_item "goto") label_map labelnames_block
+  in
+  (label_map, Ast.Block labelnames_block)
 
-let labelnames (Ast.Program function_def) = Ast.Program (labelnames_function function_def)
+and labelnames_function (Ast.Function {name; body}) =
+  let label_map = LabelMap.empty in
+  let (_, labelnames_body) = labelnames_block label_map body in
+  Ast.Function {name; body = labelnames_body}  
+
+and labelnames (Ast.Program function_def) = Ast.Program (labelnames_function function_def)

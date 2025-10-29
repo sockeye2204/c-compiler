@@ -166,13 +166,16 @@ module Private = struct
       let (_, _) = parse_statement rest in
       (Ast.Label name, rest)
     | Semicolon :: rest -> (Ast.Null, rest)
+    | BraceOpen :: _ ->
+      let (block, rest) = parse_block tokens in
+      (Ast.Compound block, rest)
     | _ ->
       let (expr, remaining) = parse_expression 0 tokens in
       (match remaining with
       | Semicolon :: rest -> (Ast.Expression expr, rest)
       | _ -> raise (ParserError "Expected semicolon"))
 
-  let parse_declaration tokens =
+  and parse_declaration tokens =
     match tokens with
     | KWInt :: rest ->
       let (name, rest) = parse_id rest in
@@ -186,7 +189,7 @@ module Private = struct
       | _ -> raise (ParserError "Expected semicolon at end of declaration"))
     | _ -> raise (ParserError "Expected declaration type")
 
-  let parse_block_item tokens =
+  and parse_block_item tokens =
     match tokens with
     | KWInt :: _ ->
       let (decl, rest) = parse_declaration tokens in
@@ -194,30 +197,32 @@ module Private = struct
     | _ ->
       let (stmt, rest) = parse_statement tokens in
       (Ast.S stmt, rest)
+  
+  and parse_block tokens =
+    match tokens with
+    | BraceOpen :: rest ->
+        let rec aux acc toks =
+          match toks with
+          | BraceClose :: rest -> (Ast.Block (List.rev acc), rest)
+          | [] -> raise (ParserError "Unexpected end of input in block")
+          | _ ->
+              let (item, rest) = parse_block_item toks in
+              aux (item :: acc) rest
+        in
+        aux [] rest
+    | _ -> raise (ParserError "Expected opening brace")
+
 
   let parse_function tokens =
     match tokens with
     | KWInt :: rest ->
       let (name, rest) = parse_id rest in
       (match rest with
-        | ParenOpen :: KWVoid :: ParenClose :: BraceOpen :: rest ->
-          let tokens_ref = ref rest in
-          let block_items = ref [] in
-
-          while match !tokens_ref with
-            | BraceClose :: _ -> false
-            | [] -> raise (ParserError "Unexpected end of input in function body")
-            | _ -> true
-          do
-            let (block_item, remaining) = parse_block_item !tokens_ref in
-            block_items := !block_items @ [block_item];
-            tokens_ref := remaining
-          done;
-
-          (match !tokens_ref with
-           | BraceClose :: rest -> (Ast.Function { name; body = !block_items }, rest)
-           | _ -> raise (ParserError "Expected closing brace"))
-        | _ -> raise (ParserError "Expected function body"))
+        | ParenOpen :: KWVoid :: ParenClose :: rest ->
+          let (block, rest) = parse_block rest in
+          (Ast.Function {name; body = block }, rest)
+        | _ -> raise (ParserError "Expected function type")
+      )
     | _ -> raise (ParserError "Expected function")
 
   let parse_program tokens =

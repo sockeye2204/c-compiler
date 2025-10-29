@@ -201,17 +201,22 @@ let rec convert_statement stmt =
     result
   | Ast.Goto {target} -> [Tac.Jump {target}]
   | Ast.Label name -> [Tac.Label name]
+  | Ast.Compound block -> convert_block block
   | Ast.Null -> []
 
-let convert_block_item = function
+and convert_block_item = function
   | Ast.S stmt -> convert_statement stmt
   | Ast.D (Ast.Declaration {name; init = Some exp}) ->
     let evaluate_assignment, _er = convert_exp (Ast.Assignment {expression1=Ast.Var name; expression2=exp; compound_operator=None}) in
     evaluate_assignment
   | Ast.D (Ast.Declaration {init = None; _}) -> []
 
+and convert_block (Ast.Block items) =
+  let instructions = List.concat_map convert_block_item items in
+  (instructions)
+
 let convert_function (Ast.Function {name; body}) =
-  let instructions = List.concat_map convert_block_item body in
+  let instructions = convert_block body in
   let extra_return = Tac.Return (Constant 0) in
   Tac.Function {name; instructions = instructions @ [extra_return]}
 
