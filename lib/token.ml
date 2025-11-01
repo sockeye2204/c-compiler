@@ -37,4 +37,9 @@ type t =
   | QuestionMark
   | Colon
   | KWGoto
+  | KWDo
+  | KWWhile
+  | KWFor
+  | KWBreak
+  | KWContinue
 [@@deriving show]

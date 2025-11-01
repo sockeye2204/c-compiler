@@ -20,6 +20,11 @@ let conv_iden = function
   | "if" -> Token.KWIf
   | "else" -> Token.KWElse
   | "goto" -> Token.KWGoto
+  | "do" -> Token.KWDo
+  | "while" -> Token.KWWhile
+  | "for" -> Token.KWFor
+  | "break" -> Token.KWBreak
+  | "continue" -> Token.KWContinue
   | other -> Token.Identifier other
 
 let conv_int str = Token.Constant (int_of_string str)
