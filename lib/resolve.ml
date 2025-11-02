@@ -52,6 +52,25 @@ let resolve_declaration var_map (Ast.Declaration {name; init}) =
     let resolved_init = Option.map (resolve_exp new_map) init in
     (new_map, Ast.Declaration {name=unique_name; init=resolved_init}))
 
+let resolve_optional_exp var_map expr_opt =
+  (match expr_opt with
+  | Some expr ->
+    let resolved_exp = resolve_exp var_map expr in
+    (var_map, Some resolved_exp)
+  | None ->
+    (var_map, None)
+  )
+
+let resolve_for_init var_map init =
+  (match init with
+  | Ast.InitDecl decl ->
+    let (var_map, resolved_decl) = resolve_declaration var_map decl in
+    (var_map, Ast.InitDecl resolved_decl)
+  | Ast.InitExp expr_opt ->
+    let (var_map, resolved_expr_opt) = resolve_optional_exp var_map expr_opt in
+    (var_map, Ast.InitExp resolved_expr_opt)
+  )
+
 let rec resolve_statement var_map stmt =
   match stmt with
   | Ast.Return exp -> Ast.Return (resolve_exp var_map exp)
@@ -71,7 +90,33 @@ let rec resolve_statement var_map stmt =
     let _, resolved_block = resolve_block washed_map block in
     Ast.Compound resolved_block  
   | Ast.Null -> Ast.Null
-  | _ -> failwith "todo"
+  | Ast.Break {label} -> Ast.Break {label}
+  | Ast.Continue {label} -> Ast.Continue {label}
+  | Ast.While {condition; body; label} ->
+    Ast.While {
+      condition = resolve_exp var_map condition;
+      body = resolve_statement var_map body;
+      label;
+    }
+  | Ast.DoWhile {body; condition; label} ->
+    Ast.While {
+      body = resolve_statement var_map body;
+      condition = resolve_exp var_map condition;
+      label;
+    }
+  | Ast.For {init; condition; post; body; label} ->
+    let washed_map = wash_var_map var_map in
+    let (washed_map, resolved_init) = resolve_for_init washed_map init in
+    let (washed_map, resolved_condition) = resolve_optional_exp washed_map condition in
+    let (washed_map, resolved_post) = resolve_optional_exp washed_map post in
+    let resolved_body = resolve_statement washed_map body in
+    Ast.For {
+      init = resolved_init;
+      condition = resolved_condition;
+      post = resolved_post;
+      body = resolved_body;
+      label = label;
+    }
 
 and resolve_block_item var_map block_item =
   match block_item with

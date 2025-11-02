@@ -35,6 +35,17 @@ let rec labelnames_statement mode label_map stmt =
   | Ast.Compound block ->
     let new_map, new_block = labelnames_block label_map block in
     (new_map, Ast.Compound new_block)
+  | Ast.While {condition; body; label} ->
+    let new_map, new_body = labelnames_statement mode label_map body in
+    (new_map, Ast.While {condition; body = new_body; label})
+  
+  | Ast.DoWhile {body; condition; label} ->
+    let new_map, new_body = labelnames_statement mode label_map body in
+    (new_map, Ast.DoWhile {body = new_body; condition; label})
+  
+  | Ast.For {init; condition; post; body; label} ->
+    let new_map, new_body = labelnames_statement mode label_map body in
+    (new_map, Ast.For {init; condition; post; body = new_body; label})
   | other -> (label_map, other)
   )
 
