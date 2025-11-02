@@ -161,8 +161,23 @@ let rec convert_exp = function
     in
     (instructions, dst)
 
+let rec convert_optional_exp expr_opt =
+  match expr_opt with
+  | Some exp ->
+      let instructions_exp, src_exp = convert_exp exp in
+      (instructions_exp, src_exp)
+  | None ->
+      ([], Tac.Constant 1)
 
-let rec convert_statement stmt =
+and convert_for_init init =
+  match init with
+  | Ast.InitDecl decl -> convert_block_item (Ast.D decl)
+  | Ast.InitExp None -> []
+  | Ast.InitExp (Some expr) ->
+      let instructions, _ = convert_exp expr in
+      instructions    
+
+and convert_statement stmt =
   match stmt with
   | Ast.If { condition; thenb; elseb } ->
     let instructions_cond, src_cond = convert_exp condition in
@@ -202,8 +217,62 @@ let rec convert_statement stmt =
   | Ast.Goto {target} -> [Tac.Jump {target}]
   | Ast.Label name -> [Tac.Label name]
   | Ast.Compound block -> convert_block block
+  | Ast.Break {label} ->
+    let break_label = "break." ^ label in
+    [Tac.Jump {target = break_label}]
+  | Ast.Continue {label} ->
+    let continue_label = "continue." ^ label in
+    [Tac.Jump {target = continue_label}]
+  | Ast.While {body; condition; label} ->
+    let continue_label = "continue." ^ label in
+    let break_label = "break." ^ label in
+    let instructions_body = convert_statement body in
+    let instructions_cond, src_cond = convert_exp condition in
+    let instructions =
+      [Tac.Label continue_label]
+      @ instructions_cond
+      @ [Tac.JumpIfZero {condition=src_cond; target=break_label}]
+      @ instructions_body
+      @ [Tac.Jump {target=continue_label}]
+      @ [Tac.Label break_label]
+    in
+    instructions    
+| Ast.DoWhile {body; condition; label} ->
+    let start_label = "start." ^ label in
+    let continue_label = "continue." ^ label in
+    let break_label = "break." ^ label in
+    let instructions_body = convert_statement body in
+    let instructions_cond, src_cond = convert_exp condition in
+    let instructions =
+      [Tac.Label start_label]
+      @ instructions_body
+      @ [Tac.Label continue_label]
+      @ instructions_cond
+      @ [Tac.JumpIfNotZero {condition = src_cond; target = start_label}]
+      @ [Tac.Label break_label]
+    in
+    instructions
+  | Ast.For {init; condition; post; body; label} ->
+    let start_label = "start." ^ label in
+    let continue_label = "continue." ^ label in
+    let break_label = "break." ^ label in
+    let instructions_init = convert_for_init init in
+    let instructions_cond, src_cond = convert_optional_exp condition in
+    let instructions_post, _ = convert_optional_exp post in
+    let instructions_body = convert_statement body in
+    let instructions =
+      instructions_init
+      @ [Tac.Label start_label]
+      @ instructions_cond
+      @ [Tac.JumpIfZero {condition=src_cond; target=break_label}]
+      @ instructions_body
+      @ [Tac.Label continue_label]
+      @ instructions_post
+      @ [Tac.Jump {target=start_label}]
+      @ [Tac.Label break_label]
+    in
+  instructions
   | Ast.Null -> []
-  | _ -> failwith "todo"
 
 and convert_block_item = function
   | Ast.S stmt -> convert_statement stmt

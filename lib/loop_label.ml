@@ -38,19 +38,19 @@ let rec ll_statement current_label stmt =
       let annotated_stmt = annotate current_label stmt in
       (annotated_stmt)
   | Ast.While {condition; body; label} ->
-    let new_label = make_label "loop_label" in
+    let new_label = make_label "loop" in
     let lled_body = ll_statement new_label body in
     let lled_stmt = Ast.While {condition; body=lled_body; label} in
     let annotated_stmt = annotate new_label lled_stmt in
     (annotated_stmt)
   | Ast.DoWhile {body; condition; label} ->
-    let new_label = make_label "loop_label" in
+    let new_label = make_label "loop" in
     let lled_body = ll_statement new_label body in
     let lled_stmt = Ast.DoWhile {body=lled_body; condition; label} in
     let annotated_stmt = annotate new_label lled_stmt in
     (annotated_stmt)
   | Ast.For {init; condition; post; body; label} ->
-    let new_label = make_label "loop_label" in
+    let new_label = make_label "loop" in
     let lled_body = ll_statement new_label body in
     let lled_stmt = Ast.For {init; condition; post; body=lled_body; label} in
     let annotated_stmt = annotate new_label lled_stmt in

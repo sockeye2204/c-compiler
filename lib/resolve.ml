@@ -99,7 +99,7 @@ let rec resolve_statement var_map stmt =
       label;
     }
   | Ast.DoWhile {body; condition; label} ->
-    Ast.While {
+    Ast.DoWhile {
       body = resolve_statement var_map body;
       condition = resolve_exp var_map condition;
       label;
