@@ -203,6 +203,7 @@ let rec convert_statement stmt =
   | Ast.Label name -> [Tac.Label name]
   | Ast.Compound block -> convert_block block
   | Ast.Null -> []
+  | _ -> failwith "todo"
 
 and convert_block_item = function
   | Ast.S stmt -> convert_statement stmt

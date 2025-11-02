@@ -71,6 +71,7 @@ let rec resolve_statement var_map stmt =
     let _, resolved_block = resolve_block washed_map block in
     Ast.Compound resolved_block  
   | Ast.Null -> Ast.Null
+  | _ -> failwith "todo"
 
 and resolve_block_item var_map block_item =
   match block_item with

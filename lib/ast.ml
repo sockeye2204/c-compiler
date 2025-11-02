@@ -8,7 +8,10 @@ type compound_operator = CompoundAddition | CompoundSubtraction | CompoundMultip
                     | PrefixIncrement | PrefixDecrement 
                     | PostfixIncrement | PostfixDecrement [@@deriving show]
 
-type expression = Constant of int
+type for_init = InitDecl of declaration
+              | InitExp of expression option
+
+and expression = Constant of int
                 | Var of string
                 | Unary of {unary_operator: unary_operator; expression: expression}
                 | Binary of {binary_operator: binary_operator; expression1: expression; expression2: expression}
@@ -21,6 +24,11 @@ and statement = Return of expression
               | Goto of {target: string}
               | Label of string
               | Compound of block
+              | Break of {label: string}
+              | Continue of {label: string}
+              | While of {condition: expression; body: statement; label: string}
+              | DoWhile of {body: statement; condition: expression; label: string}
+              | For of {init: for_init; condition: expression option; post: expression option; body: statement; label: string}
               | Null [@@deriving show]
 
 and declaration = Declaration of {name: string; init: expression option} [@@deriving show]

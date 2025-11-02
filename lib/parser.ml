@@ -139,6 +139,17 @@ module Private = struct
     let (expr, remaining) = parse_expression 0 remaining in
     let remaining = List.tl remaining in
     (expr, remaining)
+  
+  let parse_optional_expression closing_token tokens =
+    match tokens with
+    | tok :: rest when tok = closing_token ->
+      (None, rest)
+    | _ ->
+      let (expr, rest) = parse_expression 0 tokens in
+      (match rest with
+      | tok :: remaining when tok = closing_token ->
+        (Some expr, remaining)
+      | _ -> raise (ParserError "Expected closing token after expression"))
 
   let rec parse_statement tokens =
     match tokens with
@@ -169,11 +180,36 @@ module Private = struct
     | BraceOpen :: _ ->
       let (block, rest) = parse_block tokens in
       (Ast.Compound block, rest)
-    | _ ->
-      let (expr, remaining) = parse_expression 0 tokens in
+    | KWBreak :: Semicolon :: rest -> (Ast.Break {label = "DUMMY"}, rest)
+    | KWContinue :: Semicolon :: rest -> (Ast.Continue {label = "DUMMY"}, rest)
+    | KWWhile :: ParenOpen :: rest ->
+      let (expr, remaining) = parse_expression 0 rest in
       (match remaining with
-      | Semicolon :: rest -> (Ast.Expression expr, rest)
-      | _ -> raise (ParserError "Expected semicolon"))
+      | ParenClose :: rest ->
+        let (stmt, rest) = parse_statement rest in
+        (Ast.While {condition = expr; body = stmt; label = "DUMMY"}, rest)
+      | _ -> raise (ParserError "Expected closing parenthesis in if statement"))
+    | KWDo :: rest ->
+      let (stmt, rest) = parse_statement rest in
+      (match rest with
+      | KWWhile :: ParenOpen :: remaining ->
+        let (expr, remaining) = parse_expression 0 remaining in
+        (match remaining with
+        | ParenClose :: Semicolon :: rest ->
+          (Ast.DoWhile {condition = expr; body = stmt; label = "DUMMY"}, rest)
+        | _ -> raise (ParserError "Expected closing parenthesis and semicolon after expression"))
+      | _ -> raise (ParserError "Expected while and opening parenthesis after do statement"))
+    | KWFor :: ParenOpen :: rest ->
+      let (init, rest) = parse_for_init rest in
+      let (condition, rest) = parse_optional_expression Semicolon rest in
+      let (post, rest) = parse_optional_expression ParenClose rest in
+      let (body, rest) = parse_statement rest in
+      (Ast.For {init = init; condition = condition; post = post; body = body; label = "DUMMY"}, rest)
+    | _ ->
+      let (expr_opt, rest) = parse_optional_expression Semicolon tokens in
+      (match expr_opt with
+      | None -> (Ast.Null, rest)
+      | Some expr -> (Ast.Expression expr, rest))
 
   and parse_declaration tokens =
     match tokens with
@@ -188,6 +224,15 @@ module Private = struct
       | Semicolon :: rest -> (Ast.Declaration { name; init = None }, rest)
       | _ -> raise (ParserError "Expected semicolon at end of declaration"))
     | _ -> raise (ParserError "Expected declaration type")
+  
+  and parse_for_init tokens =
+    match tokens with
+    | KWInt :: _ ->
+      let (decl, rest) = parse_declaration tokens in
+      (Ast.InitDecl decl, rest)
+    | _ ->
+      let (expr_opt, remaining) = parse_optional_expression Semicolon tokens in
+      (Ast.InitExp expr_opt, remaining)
 
   and parse_block_item tokens =
     match tokens with
